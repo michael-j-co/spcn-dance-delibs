@@ -28,6 +28,8 @@ type DraftContextValue = {
     initializeDraft: (dancers: Dancer[]) => void
     assignToCurrentSuite: (dancerIds: string[]) => void
     manualAssign: (dancerId: string, suite: SuiteName) => void
+    moveDancer: (dancerId: string, to?: SuiteName) => void
+    unassignDancer: (dancerId: string) => void
     finalizeSuite: (suite: SuiteName) => void
     advanceTurn: () => void
     resetDraft: () => void
@@ -136,6 +138,82 @@ function draftReducer(state: DraftState | null, action: DraftAction) {
           return {
             ...state,
             currentTurnSuiteIndex: nextIndex,
+          }
+        }
+        case 'MOVE_DANCER': {
+          const { dancerId, to } = action.payload
+          const dancer = state.dancers.find((d) => d.id === dancerId)
+          if (!dancer) return state
+
+          const from = dancer.assignedSuite
+
+          // No-op if moving to same suite
+          if (from && to === from) return state
+
+          // Update dancers list
+          const updatedDancers = state.dancers.map((d) =>
+            d.id === dancerId ? { ...d, assignedSuite: to } : d,
+          )
+
+          // Update suites roster ids: remove from previous, add to destination
+          const updatedSuites = { ...state.suites }
+          if (from) {
+            updatedSuites[from] = {
+              ...updatedSuites[from],
+              ids: updatedSuites[from].ids.filter((id) => id !== dancerId),
+            }
+          }
+          if (to) {
+            const set = new Set(updatedSuites[to].ids)
+            set.add(dancerId)
+            updatedSuites[to] = { ...updatedSuites[to], ids: [...set] }
+          }
+
+          // Update unassignedIds
+          const unassignedSet = new Set(state.unassignedIds)
+          if (to) {
+            unassignedSet.delete(dancerId)
+          } else {
+            unassignedSet.add(dancerId)
+          }
+
+          return {
+            ...state,
+            dancers: updatedDancers,
+            suites: updatedSuites,
+            unassignedIds: [...unassignedSet],
+          }
+        }
+        case 'UNASSIGN_DANCER': {
+          const { dancerId } = action.payload
+          const dancer = state.dancers.find((d) => d.id === dancerId)
+          if (!dancer) return state
+
+          const from = dancer.assignedSuite
+
+          // Update dancers
+          const updatedDancers = state.dancers.map((d) =>
+            d.id === dancerId ? { ...d, assignedSuite: undefined } : d,
+          )
+
+          // Remove from source roster
+          const updatedSuites = { ...state.suites }
+          if (from) {
+            updatedSuites[from] = {
+              ...updatedSuites[from],
+              ids: updatedSuites[from].ids.filter((id) => id !== dancerId),
+            }
+          }
+
+          // Ensure in unassigned
+          const unassignedSet = new Set(state.unassignedIds)
+          unassignedSet.add(dancerId)
+
+          return {
+            ...state,
+            dancers: updatedDancers,
+            suites: updatedSuites,
+            unassignedIds: [...unassignedSet],
           }
         }
         case 'FINALIZE_SUITE': {
@@ -251,6 +329,14 @@ export function DraftProvider({ children }: DraftProviderProps) {
     dispatch({ type: 'FINALIZE_SUITE', payload: { suite } })
   }, [])
 
+  const moveDancer = useCallback((dancerId: string, to?: SuiteName) => {
+    dispatch({ type: 'MOVE_DANCER', payload: { dancerId, to } })
+  }, [])
+
+  const unassignDancer = useCallback((dancerId: string) => {
+    dispatch({ type: 'UNASSIGN_DANCER', payload: { dancerId } })
+  }, [])
+
   const advanceTurn = useCallback(() => {
     dispatch({ type: 'ADVANCE_TURN' })
   }, [])
@@ -294,6 +380,8 @@ export function DraftProvider({ children }: DraftProviderProps) {
         initializeDraft,
         assignToCurrentSuite,
         manualAssign,
+        moveDancer,
+        unassignDancer,
         finalizeSuite,
         advanceTurn,
         resetDraft,

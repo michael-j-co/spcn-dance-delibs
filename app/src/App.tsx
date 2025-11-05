@@ -3,15 +3,17 @@ import './App.css'
 import { ImportScreen } from './pages/ImportScreen'
 import { DraftBoard } from './pages/DraftBoard'
 import { ExportScreen } from './pages/ExportScreen'
+import { FinalEditsScreen } from './pages/FinalEditsScreen'
 import { useDraftStore } from './state/DraftProvider'
 import { loadDraftState } from './lib/storage'
 import { formatSuiteName, getActiveSuiteColor } from './lib/colors'
 
-type AppView = 'import' | 'draft' | 'export'
+type AppView = 'import' | 'draft' | 'finalEdits' | 'export'
 
 const VIEW_LABELS: Record<AppView, string> = {
   import: 'Import',
   draft: 'Draft Board',
+  finalEdits: 'Final Edits',
   export: 'Export',
 }
 
@@ -75,6 +77,10 @@ function App() {
     setView('export')
   }
 
+  const handleGoToFinalEdits = () => {
+    setView('finalEdits')
+  }
+
   const isDraftView = view === 'draft'
   const activeColor = useMemo(
     () => getActiveSuiteColor(isDraftView ? currentSuite ?? undefined : undefined),
@@ -129,6 +135,15 @@ function App() {
               Go to Export
             </button>
           )}
+          {state && (
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleGoToFinalEdits}
+            >
+              Go to Final Edits
+            </button>
+          )}
           <button
             type="button"
             className="danger"
@@ -146,6 +161,7 @@ function App() {
         {view === 'draft' && state && (
           <DraftBoard onNavigateToExport={handleGoToExport} />
         )}
+        {view === 'finalEdits' && state && <FinalEditsScreen />}
         {view === 'export' && state && <ExportScreen />}
         {view !== 'import' && !state && (
           <section className="placeholder">

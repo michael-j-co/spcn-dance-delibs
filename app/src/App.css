@@ -518,6 +518,52 @@ button:disabled {
   font: inherit;
 }
 
+/* Final edits (drag & drop) */
+.final-edits-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 1200px) {
+  .final-edits-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .final-edits-grid { grid-template-columns: 1fr; }
+}
+
+.final-edits-column {
+  min-height: 320px;
+}
+
+.final-edits-column.is-drag-over {
+  outline: 2px dashed var(--suite-color-base);
+  outline-offset: 4px;
+}
+
+.final-edits-list {
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.final-edits-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  cursor: grab;
+}
+
+.final-edits-item__main {
+  flex: 1;
+}
+
+.move-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .suite-export-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

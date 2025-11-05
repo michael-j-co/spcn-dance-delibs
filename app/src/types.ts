@@ -47,3 +47,11 @@ export type DraftAction =
   | { type: 'ADVANCE_TURN' }
   | { type: 'FINALIZE_SUITE'; payload: { suite: SuiteName } }
   | { type: 'RESET' }
+  | {
+      type: 'MOVE_DANCER'
+      payload: { dancerId: string; to?: SuiteName }
+    }
+  | {
+      type: 'UNASSIGN_DANCER'
+      payload: { dancerId: string }
+    }
