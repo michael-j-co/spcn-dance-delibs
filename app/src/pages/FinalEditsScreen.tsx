@@ -74,7 +74,7 @@ export function FinalEditsScreen() {
       <header className="panel__header">
         <div>
           <h2>Final Edits</h2>
-          <p>Drag dancers between suite rosters. Use Move control as fallback.</p>
+          <p>Drag dancers between suite rosters to move them.</p>
         </div>
       </header>
       <div className="panel__body">
@@ -151,9 +151,7 @@ export function FinalEditsScreen() {
                             </span>
                           </small>
                         </div>
-                        <div className="final-edits-item__actions">
-                          <MoveControl dancerId={dancer.id} current={suite} onMove={(to) => actions.moveDancer(dancer.id, to)} />
-                        </div>
+                        {/* Drag-and-drop only; no fallback controls */}
                       </li>
                     ))}
                   </ul>
@@ -168,37 +166,4 @@ export function FinalEditsScreen() {
     </section>
   )
 }
-
-function MoveControl({
-  dancerId,
-  current,
-  onMove,
-}: {
-  dancerId: string
-  current: SuiteName
-  onMove: (to: SuiteName) => void
-}) {
-  const [to, setTo] = useState<SuiteName>(current)
-  return (
-    <div className="move-control">
-      <select value={to} onChange={(e) => setTo(e.target.value as SuiteName)}>
-        {SUITE_NAMES.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        className="secondary"
-        disabled={to === current}
-        onClick={() => onMove(to)}
-        aria-label={`Move ${dancerId} to ${to}`}
-      >
-        Move
-      </button>
-    </div>
-  )
-}
-
 export default FinalEditsScreen
