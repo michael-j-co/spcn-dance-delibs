@@ -41,11 +41,14 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
   }, [state.dancers])
 
   const rosterOrder = useMemo(() => {
-    if (!currentSuite) return [...SUITE_NAMES]
-    return [currentSuite, ...SUITE_NAMES.filter((suite) => suite !== currentSuite)]
-  }, [currentSuite])
+    if (!currentSuite) return [...state.suiteOrder]
+    return [
+      currentSuite,
+      ...state.suiteOrder.filter((suite) => suite !== currentSuite),
+    ]
+  }, [currentSuite, state.suiteOrder])
 
-  const allFinalized = SUITE_NAMES.every(
+  const allFinalized = state.suiteOrder.every(
     (suite) => state.suites[suite].finalized,
   )
 
@@ -98,11 +101,11 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
   )
 
   const defaultManualSuite = useMemo(() => {
-    const firstActive = SUITE_NAMES.find(
+    const firstActive = state.suiteOrder.find(
       (suite) => !state.suites[suite].finalized,
     )
-    return firstActive ?? SUITE_NAMES[0]
-  }, [state.suites])
+    return firstActive ?? state.suiteOrder[0]
+  }, [state.suiteOrder, state.suites])
 
   const handleToggleSelection = (dancerId: string) => {
     setSelectedIds((prev) => {

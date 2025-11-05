@@ -27,7 +27,7 @@ export function FinalEditsScreen() {
     return map
   }, [state.dancers])
 
-  const columns = SUITE_NAMES.map((suite) => {
+  const columns = state.suiteOrder.map((suite) => {
     const ids = state.suites[suite].ids
     const dancers = ids
       .map((id) => dancerLookup.get(id))

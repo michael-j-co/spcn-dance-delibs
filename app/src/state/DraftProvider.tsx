@@ -46,6 +46,23 @@ const DraftContext = createContext<DraftContextValue | undefined>(undefined)
 
 const initialState: DraftState | null = null
 
+function computeSuiteOrder(dancers: Dancer[]): SuiteName[] {
+  const firstPrefCounts = new Map<SuiteName, number>()
+  SUITE_NAMES.forEach((s) => firstPrefCounts.set(s, 0))
+  for (const d of dancers) {
+    const pref = d.suitePrefs.first
+    if (pref && firstPrefCounts.has(pref)) {
+      firstPrefCounts.set(pref, (firstPrefCounts.get(pref) || 0) + 1)
+    }
+  }
+  return [...SUITE_NAMES].sort((a, b) => {
+    const ca = firstPrefCounts.get(a) ?? 0
+    const cb = firstPrefCounts.get(b) ?? 0
+    if (ca !== cb) return ca - cb
+    return SUITE_NAMES.indexOf(a) - SUITE_NAMES.indexOf(b)
+  })
+}
+
 function buildInitialState(dancers: Dancer[]): DraftState {
   const cleanedDancers = dancers.map((dancer) => ({
     ...dancer,
@@ -60,22 +77,23 @@ function buildInitialState(dancers: Dancer[]): DraftState {
     {} as DraftState['suites'],
   )
 
+  const suiteOrder = computeSuiteOrder(cleanedDancers)
+
   return {
     dancers: cleanedDancers,
     unassignedIds: cleanedDancers.map((dancer) => dancer.id),
     suites,
+    suiteOrder,
     currentTurnSuiteIndex: 0,
     startedAt: new Date().toISOString(),
   }
 }
 
-function getNextActiveSuiteIndex(
-  state: DraftState,
-  startIndex: number,
-): number {
-  for (let i = 0; i < SUITE_NAMES.length; i += 1) {
-    const idx = (startIndex + i) % SUITE_NAMES.length
-    const suite = SUITE_NAMES[idx]
+function getNextActiveSuiteIndex(state: DraftState, startIndex: number): number {
+  const order = state.suiteOrder
+  for (let i = 0; i < order.length; i += 1) {
+    const idx = (startIndex + i) % order.length
+    const suite = order[idx]
     if (!state.suites[suite].finalized) {
       return idx
     }
@@ -89,7 +107,11 @@ function draftReducer(state: DraftState | null, action: DraftAction) {
       return buildInitialState(action.payload.dancers)
     }
     case 'HYDRATE': {
-      return action.payload.state
+      const s = action.payload.state
+      const order = (s as DraftState).suiteOrder && (s as DraftState).suiteOrder.length
+        ? (s as DraftState).suiteOrder
+        : computeSuiteOrder(s.dancers)
+      return { ...s, suiteOrder: order }
     }
     case 'RESET': {
       return initialState
@@ -228,7 +250,7 @@ function draftReducer(state: DraftState | null, action: DraftAction) {
             suites: updatedSuites,
           }
 
-          const currentSuite = SUITE_NAMES[state.currentTurnSuiteIndex]
+          const currentSuite = state.suiteOrder[state.currentTurnSuiteIndex]
           if (currentSuite === suite) {
             const nextIndex = getNextActiveSuiteIndex(
               updatedState,
@@ -300,7 +322,7 @@ export function DraftProvider({ children }: DraftProviderProps) {
   const assignToCurrentSuite = useCallback(
     (dancerIds: string[]) => {
       if (!state) return
-      const suite = SUITE_NAMES[state.currentTurnSuiteIndex]
+      const suite = state.suiteOrder[state.currentTurnSuiteIndex]
       if (!suite || state.suites[suite]?.finalized) {
         dispatch({ type: 'ADVANCE_TURN' })
         return
@@ -352,16 +374,16 @@ export function DraftProvider({ children }: DraftProviderProps) {
 
   const currentSuite = useMemo(() => {
     if (!state) return null
-    const hasActiveSuite = SUITE_NAMES.some(
+    const hasActiveSuite = state.suiteOrder.some(
       (suite) => !state.suites[suite].finalized,
     )
     if (!hasActiveSuite) {
       return null
     }
-    const suiteAtIndex = SUITE_NAMES[state.currentTurnSuiteIndex]
+    const suiteAtIndex = state.suiteOrder[state.currentTurnSuiteIndex]
     if (!suiteAtIndex) return null
     if (state.suites[suiteAtIndex]?.finalized) {
-      const nextAvailable = SUITE_NAMES.find(
+      const nextAvailable = state.suiteOrder.find(
         (suite) => !state.suites[suite].finalized,
       )
       return nextAvailable ?? null

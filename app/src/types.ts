@@ -28,6 +28,7 @@ export type DraftState = {
   dancers: Dancer[]
   unassignedIds: string[]
   suites: Record<SuiteName, SuiteRoster>
+  suiteOrder: SuiteName[]
   currentTurnSuiteIndex: number
   startedAt: string
 }
