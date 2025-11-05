@@ -1,6 +1,13 @@
 import { useMemo, useState, type ChangeEvent } from 'react'
-import { parseDancersFromCsv } from '../lib/csv'
+import {
+  autoDetectMapping,
+  parseCsv,
+  parseDancersWithMapping,
+  validateMapping,
+  type ColumnMapping,
+} from '../lib/csv'
 import { RoleScore } from '../components/RoleScore'
+import { ColumnMapperModal } from '../components/ColumnMapperModal'
 import type { Dancer } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
 import { SuiteChip } from '../components/SuiteChip'
@@ -17,6 +24,10 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
   const [error, setError] = useState<string | null>(null)
   const [dancers, setDancers] = useState<Dancer[]>([])
   const [fileName, setFileName] = useState<string | null>(null)
+  const [rawHeaders, setRawHeaders] = useState<string[]>([])
+  const [rawRows, setRawRows] = useState<Record<string, string>[]>([])
+  const [showMapper, setShowMapper] = useState(false)
+  const [pendingMapping, setPendingMapping] = useState<Partial<ColumnMapping>>({})
 
   const preferenceGaps = useMemo(() => {
     if (!dancers.length) return null
@@ -37,13 +48,46 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
     return { missingFirst, missingSecond, missingThird }
   }, [dancers])
 
+  const headerSignature = (headers: string[]) => headers.slice().sort().join(' | ')
+  const loadSavedMapping = (headers: string[]): Partial<ColumnMapping> | null => {
+    try {
+      const key = `csv-mapping::${headerSignature(headers)}`
+      const raw = localStorage.getItem(key)
+      return raw ? (JSON.parse(raw) as ColumnMapping) : null
+    } catch {
+      return null
+    }
+  }
+  const saveMapping = (headers: string[], mapping: ColumnMapping) => {
+    try {
+      const key = `csv-mapping::${headerSignature(headers)}`
+      localStorage.setItem(key, JSON.stringify(mapping))
+    } catch {}
+  }
+
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
     setStatus('loading')
     setError(null)
     try {
-      const parsed = await parseDancersFromCsv(file)
+      const { headers, rows } = await parseCsv(file)
+      setRawHeaders(headers)
+      setRawRows(rows)
+      const saved = loadSavedMapping(headers) || {}
+      const auto = autoDetectMapping(headers)
+      const combined = { ...auto, ...saved }
+
+      const { ok } = validateMapping(combined, headers)
+      if (!ok) {
+        setPendingMapping(combined)
+        setShowMapper(true)
+        setStatus('idle')
+        setFileName(file.name)
+        return
+      }
+
+      const parsed = parseDancersWithMapping(rows, combined as ColumnMapping)
       setDancers(parsed)
       setFileName(file.name)
       setStatus('success')
@@ -120,6 +164,11 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
               <strong>Dancers:</strong> {dancers.length}
             </div>
           </div>
+          <div className="alert info">
+            Preferences are compacted: if earlier preferences are empty or
+            marked as “ensemble” or “script”, later preferences shift up to fill
+            gaps.
+          </div>
           {preferenceGaps && (
             <div className="alert warning">
               <strong>Heads up:</strong>{' '}
@@ -189,6 +238,39 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
             Select a CSV file to review dancers before starting the draft.
           </p>
         </div>
+      )}
+
+      {showMapper && (
+        <ColumnMapperModal
+          headers={rawHeaders}
+          previewRows={rawRows.slice(0, 20)}
+          initialMapping={pendingMapping}
+          onCancel={() => {
+            setShowMapper(false)
+            setPendingMapping({})
+          }}
+          onConfirm={(mapping) => {
+            const { ok, errors } = validateMapping(mapping, rawHeaders)
+            if (!ok) {
+              setError(errors.join('\n'))
+              return
+            }
+            try {
+              const parsed = parseDancersWithMapping(rawRows, mapping)
+              saveMapping(rawHeaders, mapping)
+              setDancers(parsed)
+              setStatus('success')
+              setShowMapper(false)
+            } catch (err) {
+              console.error(err)
+              setError(
+                err instanceof Error ? err.message : 'Failed to parse CSV with mapping.',
+              )
+              setStatus('error')
+              setShowMapper(false)
+            }
+          }}
+        />
       )}
     </section>
   )
