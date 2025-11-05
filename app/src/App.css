@@ -473,17 +473,23 @@ button:disabled {
   justify-content: center;
   padding: 2rem;
   z-index: 100;
+  overflow: auto;
 }
 
 .modal {
   background: #f8fafc;
   border-radius: 16px;
   padding: 2rem;
-  width: min(420px, 100%);
+  /* Allow a wider modal on larger screens while remaining responsive */
+  width: min(720px, 95vw);
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+  /* Let the modal use more vertical space while remaining scrollable */
+  max-height: 96vh;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal__actions {

@@ -56,7 +56,7 @@ const createState = (): DraftState => {
 }
 
 describe('buildRecommendations', () => {
-  it('scores dancers relative to a suite and returns sorted lists', () => {
+  it('ranks dancers by preference for a suite and returns sorted lists', () => {
     const state = createState()
     const { topPicks, allCandidates } = buildRecommendations(
       state,
@@ -65,9 +65,9 @@ describe('buildRecommendations', () => {
 
     expect(topPicks).toHaveLength(3)
     expect(topPicks[0].id).toBe('1')
-    expect(topPicks[0].score).toBe(10)
+    expect(topPicks[0].prefRank).toBe(1)
     expect(allCandidates.map((d) => d.id)).toEqual(['1', '2', '3'])
-    expect(allCandidates[1].score).toBe(6)
-    expect(allCandidates[2].score).toBe(4)
+    expect(allCandidates[1].prefRank).toBe(2)
+    expect(allCandidates[2].prefRank).toBe(3)
   })
 })

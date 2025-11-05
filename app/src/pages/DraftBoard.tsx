@@ -79,15 +79,15 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
   )
 
   const sortedCandidates = useMemo(() => {
-    if (!filteredCandidates.length || recommendedSet.size === 0) {
-      return filteredCandidates
-    }
-    return [...filteredCandidates].sort((a, b) => {
-      const aRec = recommendedSet.has(a.id) ? 1 : 0
-      const bRec = recommendedSet.has(b.id) ? 1 : 0
-      return bRec - aRec
-    })
-  }, [filteredCandidates, recommendedSet])
+    if (!filteredCandidates.length) return filteredCandidates
+    const filteredIds = new Set(filteredCandidates.map((c) => c.id))
+    const topFiltered = recommendations.topPicks.filter((d) => filteredIds.has(d.id))
+    const topIds = new Set(topFiltered.map((d) => d.id))
+    const remainder = recommendations.allCandidates.filter(
+      (d) => filteredIds.has(d.id) && !topIds.has(d.id),
+    )
+    return [...topFiltered, ...remainder]
+  }, [filteredCandidates, recommendations.allCandidates, recommendations.topPicks])
 
   const unassignedDancers = useMemo(
       () =>

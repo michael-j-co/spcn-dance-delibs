@@ -15,8 +15,8 @@ export type Dancer = {
   assignedSuite?: SuiteName
 }
 
-export type ScoredDancer = Dancer & {
-  score: number
+export type RankedDancer = Dancer & {
+  prefRank: 1 | 2 | 3 | 4
 }
 
 export type SuiteRoster = {
