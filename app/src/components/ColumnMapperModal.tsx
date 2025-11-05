@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ColumnMapping, FieldKey } from '../lib/csv'
 
 type ColumnMapperModalProps = {
@@ -62,7 +63,16 @@ export function ColumnMapperModal({
     onConfirm(mapping as ColumnMapping)
   }
 
-  return (
+  // Lock background scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [])
+
+  return createPortal(
     <div className="modal-backdrop">
       <div className="modal">
         <h2>Map CSV Columns</h2>
@@ -79,7 +89,11 @@ export function ColumnMapperModal({
               >
                 <option value="">— Select —</option>
                 {headers.map((h) => (
-                  <option key={h} value={h} disabled={chosen.has(h) && mapping[field.key] !== h}>
+                  <option
+                    key={h}
+                    value={h}
+                    disabled={chosen.has(h) && mapping[field.key] !== h}
+                  >
                     {h}
                   </option>
                 ))}
@@ -102,9 +116,9 @@ export function ColumnMapperModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
 export default ColumnMapperModal
-
