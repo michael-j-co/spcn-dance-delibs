@@ -75,12 +75,13 @@ function App() {
     setView('export')
   }
 
+  const isDraftView = view === 'draft'
   const activeColor = useMemo(
-    () => getActiveSuiteColor(currentSuite ?? undefined),
-    [currentSuite],
+    () => getActiveSuiteColor(isDraftView ? currentSuite ?? undefined : undefined),
+    [currentSuite, isDraftView],
   )
 
-  const suiteClass = currentSuite
+  const suiteClass = isDraftView && currentSuite
     ? `suite-theme--${formatSuiteName(currentSuite)}`
     : ''
 
@@ -96,7 +97,7 @@ function App() {
       <header className="app-header">
         <div className="app-header__titles">
           <h1>SPCN Suite Drafting</h1>
-          {state && (
+          {isDraftView && state && (
             <p className="app-subtitle">
               Current turn:{' '}
               <strong>{currentSuite ?? 'Draft complete'}</strong>

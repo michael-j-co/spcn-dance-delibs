@@ -145,7 +145,8 @@ export function parseDancersWithMapping(
     }
   }
 
-  const dancers: Dancer[] = rows.map((row) => {
+  const dancers: Dancer[] = []
+  for (const row of rows) {
     const fullName = (row[mapping.fullName] ?? '').trim()
     if (!fullName) {
       throw new Error('Full Name is required for every dancer.')
@@ -154,6 +155,12 @@ export function parseDancersWithMapping(
     const p1 = normalizeSuiteName(row[mapping.pref1] ?? '')
     const p2 = normalizeSuiteName(row[mapping.pref2] ?? '')
     const p3 = normalizeSuiteName(row[mapping.pref3] ?? '')
+
+    // Skip entries with no valid suite preferences (e.g., only script/ensemble or blank)
+    if (!p1 && !p2 && !p3) {
+      continue
+    }
+
     const prefs = compressPrefs(p1, p2, p3)
 
     const dancer: Dancer = {
@@ -172,8 +179,8 @@ export function parseDancersWithMapping(
       assignedSuite: undefined,
     }
 
-    return dancer
-  })
+    dancers.push(dancer)
+  }
 
   return dancers
 }
