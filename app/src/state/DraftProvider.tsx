@@ -1,0 +1,334 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { SUITE_NAMES } from '../constants'
+import {
+  type Dancer,
+  type DraftAction,
+  type DraftState,
+  type SuiteName,
+} from '../types'
+import {
+  clearDraftState,
+  loadDraftState,
+  saveDraftState,
+} from '../lib/storage'
+
+type DraftContextValue = {
+  state: DraftState | null
+  actions: {
+    initializeDraft: (dancers: Dancer[]) => void
+    assignToCurrentSuite: (dancerIds: string[]) => void
+    manualAssign: (dancerId: string, suite: SuiteName) => void
+    finalizeSuite: (suite: SuiteName) => void
+    advanceTurn: () => void
+    resetDraft: () => void
+    hydrate: (state: DraftState) => void
+  }
+  helpers: {
+    currentSuite: SuiteName | null
+    hasSavedDraft: boolean
+    refreshSavedDraftFlag: () => void
+  }
+}
+
+const DraftContext = createContext<DraftContextValue | undefined>(undefined)
+
+const initialState: DraftState | null = null
+
+function buildInitialState(dancers: Dancer[]): DraftState {
+  const cleanedDancers = dancers.map((dancer) => ({
+    ...dancer,
+    assignedSuite: undefined,
+  }))
+
+  const suites = SUITE_NAMES.reduce<DraftState['suites']>(
+    (acc, suite) => ({
+      ...acc,
+      [suite]: { ids: [], finalized: false },
+    }),
+    {} as DraftState['suites'],
+  )
+
+  return {
+    dancers: cleanedDancers,
+    unassignedIds: cleanedDancers.map((dancer) => dancer.id),
+    suites,
+    currentTurnSuiteIndex: 0,
+    startedAt: new Date().toISOString(),
+  }
+}
+
+function getNextActiveSuiteIndex(
+  state: DraftState,
+  startIndex: number,
+): number {
+  for (let i = 0; i < SUITE_NAMES.length; i += 1) {
+    const idx = (startIndex + i) % SUITE_NAMES.length
+    const suite = SUITE_NAMES[idx]
+    if (!state.suites[suite].finalized) {
+      return idx
+    }
+  }
+  return state.currentTurnSuiteIndex
+}
+
+function draftReducer(state: DraftState | null, action: DraftAction) {
+  switch (action.type) {
+    case 'INITIALIZE': {
+      return buildInitialState(action.payload.dancers)
+    }
+    case 'HYDRATE': {
+      return action.payload.state
+    }
+    case 'RESET': {
+      return initialState
+    }
+    default: {
+      if (!state) return state
+      switch (action.type) {
+        case 'ASSIGN_DANCERS': {
+          const { suite, dancerIds } = action.payload
+          if (!dancerIds.length) {
+            return state
+          }
+
+          const uniqueIds = [...new Set(dancerIds)]
+          const updatedDancers = state.dancers.map((dancer) =>
+            uniqueIds.includes(dancer.id)
+              ? { ...dancer, assignedSuite: suite }
+              : dancer,
+          )
+
+          const updatedSuites = {
+            ...state.suites,
+            [suite]: {
+              ...state.suites[suite],
+              ids: [...state.suites[suite].ids, ...uniqueIds],
+            },
+          }
+
+          const updatedUnassigned = state.unassignedIds.filter(
+            (id) => !uniqueIds.includes(id),
+          )
+
+          return {
+            ...state,
+            dancers: updatedDancers,
+            suites: updatedSuites,
+            unassignedIds: updatedUnassigned,
+          }
+        }
+        case 'ADVANCE_TURN': {
+          if (!state) return state
+          const nextIndex = getNextActiveSuiteIndex(
+            state,
+            state.currentTurnSuiteIndex + 1,
+          )
+          return {
+            ...state,
+            currentTurnSuiteIndex: nextIndex,
+          }
+        }
+        case 'FINALIZE_SUITE': {
+          const { suite } = action.payload
+          const updatedSuites = {
+            ...state.suites,
+            [suite]: { ...state.suites[suite], finalized: true },
+          }
+
+          const updatedState = {
+            ...state,
+            suites: updatedSuites,
+          }
+
+          const currentSuite = SUITE_NAMES[state.currentTurnSuiteIndex]
+          if (currentSuite === suite) {
+            const nextIndex = getNextActiveSuiteIndex(
+              updatedState,
+              state.currentTurnSuiteIndex + 1,
+            )
+            return {
+              ...updatedState,
+              currentTurnSuiteIndex: nextIndex,
+            }
+          }
+
+          return updatedState
+        }
+        case 'RESET': {
+          return initialState
+        }
+        default:
+          return state
+      }
+    }
+  }
+}
+
+type DraftProviderProps = {
+  children: ReactNode
+}
+
+export function DraftProvider({ children }: DraftProviderProps) {
+  const [state, dispatch] = useReducer(draftReducer, initialState)
+  const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return Boolean(loadDraftState())
+  })
+  const isHydratingRef = useRef(false)
+
+  const saveState = useCallback(
+    (nextState: DraftState | null) => {
+      if (!nextState) {
+        clearDraftState()
+        setHasSavedDraft(false)
+        return
+      }
+      saveDraftState({
+        state: nextState,
+        savedAt: new Date().toISOString(),
+      })
+      setHasSavedDraft(true)
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (isHydratingRef.current) {
+      isHydratingRef.current = false
+      return
+    }
+    if (state) {
+      saveState(state)
+    } else {
+      clearDraftState()
+      setHasSavedDraft(false)
+    }
+  }, [saveState, state])
+
+  const initializeDraft = useCallback((dancers: Dancer[]) => {
+    dispatch({ type: 'INITIALIZE', payload: { dancers } })
+  }, [])
+
+  const assignToCurrentSuite = useCallback(
+    (dancerIds: string[]) => {
+      if (!state) return
+      const suite = SUITE_NAMES[state.currentTurnSuiteIndex]
+      if (!suite || state.suites[suite]?.finalized) {
+        dispatch({ type: 'ADVANCE_TURN' })
+        return
+      }
+      dispatch({
+        type: 'ASSIGN_DANCERS',
+        payload: { suite, dancerIds },
+      })
+      dispatch({ type: 'ADVANCE_TURN' })
+    },
+    [state],
+  )
+
+  const manualAssign = useCallback(
+    (dancerId: string, suite: SuiteName) => {
+      if (!state || !state.unassignedIds.includes(dancerId)) return
+      dispatch({
+        type: 'ASSIGN_DANCERS',
+        payload: { suite, dancerIds: [dancerId] },
+      })
+    },
+    [state],
+  )
+
+  const finalizeSuite = useCallback((suite: SuiteName) => {
+    dispatch({ type: 'FINALIZE_SUITE', payload: { suite } })
+  }, [])
+
+  const advanceTurn = useCallback(() => {
+    dispatch({ type: 'ADVANCE_TURN' })
+  }, [])
+
+  const resetDraft = useCallback(() => {
+    dispatch({ type: 'RESET' })
+  }, [])
+
+  const hydrate = useCallback((draft: DraftState) => {
+    isHydratingRef.current = true
+    dispatch({ type: 'HYDRATE', payload: { state: draft } })
+  }, [])
+
+  const currentSuite = useMemo(() => {
+    if (!state) return null
+    const hasActiveSuite = SUITE_NAMES.some(
+      (suite) => !state.suites[suite].finalized,
+    )
+    if (!hasActiveSuite) {
+      return null
+    }
+    const suiteAtIndex = SUITE_NAMES[state.currentTurnSuiteIndex]
+    if (!suiteAtIndex) return null
+    if (state.suites[suiteAtIndex]?.finalized) {
+      const nextAvailable = SUITE_NAMES.find(
+        (suite) => !state.suites[suite].finalized,
+      )
+      return nextAvailable ?? null
+    }
+    return suiteAtIndex
+  }, [state])
+
+  const refreshSavedDraftFlag = useCallback(() => {
+    setHasSavedDraft(Boolean(loadDraftState()))
+  }, [])
+
+  const value = useMemo<DraftContextValue>(
+    () => ({
+      state,
+      actions: {
+        initializeDraft,
+        assignToCurrentSuite,
+        manualAssign,
+        finalizeSuite,
+        advanceTurn,
+        resetDraft,
+        hydrate,
+      },
+      helpers: {
+        currentSuite,
+        hasSavedDraft,
+        refreshSavedDraftFlag,
+      },
+    }),
+    [
+      advanceTurn,
+      assignToCurrentSuite,
+      currentSuite,
+      finalizeSuite,
+      hasSavedDraft,
+      hydrate,
+      initializeDraft,
+      manualAssign,
+      refreshSavedDraftFlag,
+      resetDraft,
+      state,
+    ],
+  )
+
+  return (
+    <DraftContext.Provider value={value}>{children}</DraftContext.Provider>
+  )
+}
+
+export function useDraftStore() {
+  const context = useContext(DraftContext)
+  if (!context) {
+    throw new Error('useDraftStore must be used within DraftProvider')
+  }
+  return context
+}
