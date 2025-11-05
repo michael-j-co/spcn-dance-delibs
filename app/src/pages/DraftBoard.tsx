@@ -1,8 +1,17 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from 'react'
 import { MAX_PICKS_PER_TURN, SUITE_NAMES } from '../constants'
 import { buildRecommendations } from '../lib/recommendations'
 import type { Dancer, DraftState, SuiteName } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
+import { SuiteChip } from '../components/SuiteChip'
+import { formatSuiteName, getSuiteColor } from '../lib/colors'
+import { RoleScore } from '../components/RoleScore'
 
 type DraftBoardProps = {
   onNavigateToExport: () => void
@@ -29,6 +38,11 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
     })
     return map
   }, [state.dancers])
+
+  const rosterOrder = useMemo(() => {
+    if (!currentSuite) return [...SUITE_NAMES]
+    return [currentSuite, ...SUITE_NAMES.filter((suite) => suite !== currentSuite)]
+  }, [currentSuite])
 
   const allFinalized = SUITE_NAMES.every(
     (suite) => state.suites[suite].finalized,
@@ -58,6 +72,22 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
     )
   }, [recommendations.allCandidates, searchTerm])
 
+  const recommendedSet = useMemo(
+    () => new Set(recommendations.topPicks.map((d) => d.id)),
+    [recommendations.topPicks],
+  )
+
+  const sortedCandidates = useMemo(() => {
+    if (!filteredCandidates.length || recommendedSet.size === 0) {
+      return filteredCandidates
+    }
+    return [...filteredCandidates].sort((a, b) => {
+      const aRec = recommendedSet.has(a.id) ? 1 : 0
+      const bRec = recommendedSet.has(b.id) ? 1 : 0
+      return bRec - aRec
+    })
+  }, [filteredCandidates, recommendedSet])
+
   const unassignedDancers = useMemo(
       () =>
         state.unassignedIds
@@ -86,6 +116,13 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
   }
 
   const handleConfirmPicks = () => {
+    const count = selectedIds.length
+    if (count < MAX_PICKS_PER_TURN) {
+      const proceed = window.confirm(
+        `You've only picked ${count}/${MAX_PICKS_PER_TURN} people. Continue?`,
+      )
+      if (!proceed) return
+    }
     actions.assignToCurrentSuite(selectedIds)
     setSelectedIds([])
   }
@@ -103,6 +140,28 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
   const confirmDisabled =
     !currentSuite || selectedCount > MAX_PICKS_PER_TURN
 
+  const topRecommendationIds = useMemo(
+    () =>
+      recommendations.topPicks
+        .slice(0, MAX_PICKS_PER_TURN)
+        .map((dancer) => dancer.id),
+    [recommendations.topPicks],
+  )
+
+  const areTopPicksSelected =
+    topRecommendationIds.length > 0 &&
+    topRecommendationIds.every((id) => selectedIds.includes(id))
+
+  const handleToggleTopRecommendations = () => {
+    if (areTopPicksSelected) {
+      setSelectedIds((prev) =>
+        prev.filter((id) => !topRecommendationIds.includes(id)),
+      )
+      return
+    }
+    setSelectedIds(topRecommendationIds)
+  }
+
   return (
     <div className="draft-layout">
       <section className="panel draft-panel">
@@ -113,19 +172,26 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
               Unassigned dancers remaining: {state.unassignedIds.length}
             </p>
           </div>
-          <div className="panel__header-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => setManualAssignOpen(true)}
-              disabled={!state.unassignedIds.length}
-            >
-              Manual Assign
-            </button>
-            <button type="button" className="secondary" onClick={onNavigateToExport}>
-              Export Rosters
-            </button>
-          </div>
+          {!allFinalized && currentSuite && (
+            <div className="panel__header-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleToggleTopRecommendations}
+                disabled={topRecommendationIds.length === 0}
+              >
+                {areTopPicksSelected ? 'Deselect' : 'Select'} Top{' '}
+                {Math.min(MAX_PICKS_PER_TURN, topRecommendationIds.length)}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPicks}
+                disabled={confirmDisabled}
+              >
+                Confirm Picks
+              </button>
+            </div>
+          )}
         </header>
 
         {allFinalized && (
@@ -139,34 +205,6 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
 
         {!allFinalized && currentSuite && (
           <>
-            <div className="panel__body">
-              <h3>Recommended Picks</h3>
-              {recommendations.topPicks.length === 0 ? (
-                <p>No recommendations available.</p>
-              ) : (
-                <ul className="dancer-list">
-                  {recommendations.topPicks.map((dancer) => (
-                    <li key={dancer.id}>
-                      <label className="dancer-select">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(dancer.id)}
-                          onChange={() => handleToggleSelection(dancer.id)}
-                        />
-                        <span>
-                          <strong>{dancer.fullName}</strong>
-                          <small>
-                            Score {dancer.score} • Role {dancer.roleScore} •{' '}
-                            {dancer.isNew ? 'New' : 'Returning'}
-                          </small>
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
             <div className="panel__body">
               <div className="eligible-header">
                 <h3>All Eligible Dancers</h3>
@@ -186,39 +224,60 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
                       <tr>
                         <th></th>
                         <th>Name</th>
-                        <th>Score</th>
                         <th>Role</th>
                         <th>New?</th>
                         <th>Preferences</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredCandidates.map((candidate) => (
-                        <tr key={candidate.id}>
-                          <td>
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.includes(candidate.id)}
-                              onChange={() =>
-                                handleToggleSelection(candidate.id)
-                              }
-                              disabled={
-                                !selectedIds.includes(candidate.id) &&
-                                selectedIds.length >= MAX_PICKS_PER_TURN
-                              }
-                            />
+                      {sortedCandidates.map((candidate) => {
+                        const isSelected = selectedIds.includes(candidate.id)
+                        const isRecommended = recommendedSet.has(candidate.id)
+                        return (
+                          <tr
+                            key={candidate.id}
+                            className={isSelected ? 'is-selected' : undefined}
+                          >
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() =>
+                                  handleToggleSelection(candidate.id)
+                                }
+                                disabled={
+                                  !selectedIds.includes(candidate.id) &&
+                                  selectedIds.length >= MAX_PICKS_PER_TURN
+                                }
+                              />
+                            </td>
+                            <td>
+                              {isRecommended ? '⭐ ' : ''}
+                              {candidate.fullName}
+                            </td>
+                            <td>
+                              <RoleScore score={candidate.roleScore} />
                           </td>
-                          <td>{candidate.fullName}</td>
-                          <td>{candidate.score}</td>
-                          <td>{candidate.roleScore}</td>
                           <td>{candidate.isNew ? 'Yes' : 'No'}</td>
                           <td>
-                            {candidate.suitePrefs.first ?? '—'} ›{' '}
-                            {candidate.suitePrefs.second ?? '—'} ›{' '}
-                            {candidate.suitePrefs.third ?? '—'}
+                            <div className="suite-pref-row">
+                              <SuiteChip
+                                suite={candidate.suitePrefs.first ?? null}
+                                className="suite-pref-chip"
+                              />
+                              <SuiteChip
+                                suite={candidate.suitePrefs.second ?? null}
+                                className="suite-pref-chip"
+                              />
+                              <SuiteChip
+                                suite={candidate.suitePrefs.third ?? null}
+                                className="suite-pref-chip"
+                              />
+                            </div>
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -234,14 +293,6 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
                 <button
                   type="button"
                   className="secondary"
-                  onClick={() => setSelectedIds([])}
-                  disabled={selectedIds.length === 0}
-                >
-                  Clear Picks
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
                   onClick={handleFinalizeSuite}
                   disabled={currentRoster.finalized}
                 >
@@ -249,10 +300,18 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={handleConfirmPicks}
-                  disabled={confirmDisabled}
+                  className="secondary"
+                  onClick={() => setManualAssignOpen(true)}
+                  disabled={!state.unassignedIds.length}
                 >
-                  Confirm Picks
+                  Manual Assign
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={onNavigateToExport}
+                >
+                  Export Rosters
                 </button>
               </div>
             </footer>
@@ -263,7 +322,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
       <aside className="roster-panel">
         <h2>Suite Rosters</h2>
         <div className="roster-list">
-          {SUITE_NAMES.map((suite) => (
+          {rosterOrder.map((suite) => (
             <SuiteRosterCard
               key={suite}
               suite={suite}
@@ -316,8 +375,21 @@ function SuiteRosterCard({
     rosterDancers.reduce((sum, dancer) => sum + dancer.roleScore, 0) /
     (rosterDancers.length || 1)
 
+  const palette = getSuiteColor(suite)
+  const suiteSlug = formatSuiteName(suite)
+  const style: CSSProperties = {
+    '--suite-color-base': palette.base,
+    '--suite-color-soft': palette.soft,
+    '--suite-color-contrast': palette.contrast,
+  }
+
   return (
-    <div className={`suite-card ${isCurrent ? 'is-current' : ''}`}>
+    <div
+      className={`suite-card suite-card--${suiteSlug} ${
+        isCurrent ? 'is-current' : ''
+      }`.trim()}
+      style={style}
+    >
       <header>
         <h3>{suite}</h3>
         {finalized && <span className="badge">Finalized</span>}
@@ -337,10 +409,21 @@ function SuiteRosterCard({
             <li key={dancer.id}>
               <strong>{dancer.fullName}</strong>
               <small>
-                Role {dancer.roleScore} • Prefs:{' '}
-                {dancer.suitePrefs.first ?? '—'} /
-                {dancer.suitePrefs.second ?? '—'} /
-                {dancer.suitePrefs.third ?? '—'}
+                Role <RoleScore score={dancer.roleScore} />
+                <span className="suite-card__prefs">
+                  <SuiteChip
+                    suite={dancer.suitePrefs.first ?? null}
+                    className="suite-pref-chip"
+                  />
+                  <SuiteChip
+                    suite={dancer.suitePrefs.second ?? null}
+                    className="suite-pref-chip"
+                  />
+                  <SuiteChip
+                    suite={dancer.suitePrefs.third ?? null}
+                    className="suite-pref-chip"
+                  />
+                </span>
               </small>
             </li>
           ))}

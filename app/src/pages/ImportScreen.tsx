@@ -1,7 +1,9 @@
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { parseDancersFromCsv } from '../lib/csv'
+import { RoleScore } from '../components/RoleScore'
 import type { Dancer } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
+import { SuiteChip } from '../components/SuiteChip'
 
 type ImportScreenProps = {
   onDraftReady: () => void
@@ -154,10 +156,16 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
                 {dancers.map((dancer) => (
                   <tr key={dancer.id}>
                     <td>{dancer.fullName}</td>
-                    <td>{dancer.suitePrefs.first ?? '—'}</td>
-                    <td>{dancer.suitePrefs.second ?? '—'}</td>
-                    <td>{dancer.suitePrefs.third ?? '—'}</td>
-                    <td>{dancer.roleScore}</td>
+                    <td>
+                      <SuiteChip suite={dancer.suitePrefs.first ?? null} />
+                    </td>
+                    <td>
+                      <SuiteChip suite={dancer.suitePrefs.second ?? null} />
+                    </td>
+                    <td>
+                      <SuiteChip suite={dancer.suitePrefs.third ?? null} />
+                    </td>
+                    <td><RoleScore score={dancer.roleScore} /></td>
                     <td>{dancer.isNew ? 'Yes' : 'No'}</td>
                   </tr>
                 ))}

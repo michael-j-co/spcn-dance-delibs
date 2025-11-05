@@ -5,6 +5,7 @@ import { DraftBoard } from './pages/DraftBoard'
 import { ExportScreen } from './pages/ExportScreen'
 import { useDraftStore } from './state/DraftProvider'
 import { loadDraftState } from './lib/storage'
+import { formatSuiteName, getActiveSuiteColor } from './lib/colors'
 
 type AppView = 'import' | 'draft' | 'export'
 
@@ -74,8 +75,24 @@ function App() {
     setView('export')
   }
 
+  const activeColor = useMemo(
+    () => getActiveSuiteColor(currentSuite ?? undefined),
+    [currentSuite],
+  )
+
+  const suiteClass = currentSuite
+    ? `suite-theme--${formatSuiteName(currentSuite)}`
+    : ''
+
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${suiteClass}`.trim()}
+      style={{
+        '--suite-color-base': activeColor.base,
+        '--suite-color-soft': activeColor.soft,
+        '--suite-color-contrast': activeColor.contrast,
+      } as React.CSSProperties}
+    >
       <header className="app-header">
         <div className="app-header__titles">
           <h1>SPCN Suite Drafting</h1>

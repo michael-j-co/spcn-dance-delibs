@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type CSSProperties } from 'react'
 import {
   createAllAssignmentsCsv,
   createSuiteCsv,
@@ -7,6 +7,9 @@ import {
 } from '../lib/exporters'
 import type { SuiteName } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
+import { RoleScore } from '../components/RoleScore'
+import { SuiteChip } from '../components/SuiteChip'
+import { formatSuiteName, getSuiteColor } from '../lib/colors'
 
 export function ExportScreen() {
   const { state } = useDraftStore()
@@ -57,35 +60,49 @@ export function ExportScreen() {
 
       <div className="panel__body">
         <div className="suite-export-grid">
-          {summaries.map((summary) => (
-            <article key={summary.suite} className="suite-export-card">
-              <header>
-                <h3>{summary.suite}</h3>
-                {summary.finalized ? (
-                  <span className="badge">Finalized</span>
-                ) : (
-                  <span className="badge badge--warning">Drafting</span>
-                )}
-              </header>
-              <ul className="suite-export-meta">
-                <li>
-                  <strong>{summary.count}</strong> dancers
-                </li>
-                <li>
-                  <strong>{summary.newCount}</strong> new /{' '}
-                  {summary.returningCount} returning
-                </li>
-                <li>Avg role score {summary.averageRoleScore.toFixed(1)}</li>
-              </ul>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => handleDownloadSuite(summary.suite)}
+          {summaries.map((summary) => {
+            const palette = getSuiteColor(summary.suite)
+            const suiteSlug = formatSuiteName(summary.suite)
+            const style: CSSProperties = {
+              '--suite-color-base': palette.base,
+              '--suite-color-soft': palette.soft,
+              '--suite-color-contrast': palette.contrast,
+            }
+
+            return (
+              <article
+                key={summary.suite}
+                className={`suite-export-card suite-card--${suiteSlug}`.trim()}
+                style={style}
               >
-                Download {summary.suite} CSV
-              </button>
-            </article>
-          ))}
+                <header>
+                  <h3>{summary.suite}</h3>
+                  {summary.finalized ? (
+                    <span className="badge">Finalized</span>
+                  ) : (
+                    <span className="badge badge--warning">Drafting</span>
+                  )}
+                </header>
+                <ul className="suite-export-meta">
+                  <li>
+                    <strong>{summary.count}</strong> dancers
+                  </li>
+                  <li>
+                    <strong>{summary.newCount}</strong> new /{' '}
+                    {summary.returningCount} returning
+                  </li>
+                  <li>Avg role score {summary.averageRoleScore.toFixed(1)}</li>
+                </ul>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => handleDownloadSuite(summary.suite)}
+                >
+                  Download {summary.suite} CSV
+                </button>
+              </article>
+            )
+          })}
         </div>
       </div>
 
@@ -99,10 +116,12 @@ export function ExportScreen() {
           <ul className="unassigned-list">
             {unassigned.map((dancer) => (
               <li key={dancer.id}>
-                <strong>{dancer.fullName}</strong> • Role {dancer.roleScore} •{' '}
-                Prefs: {dancer.suitePrefs.first ?? '—'} /
-                {dancer.suitePrefs.second ?? '—'} /
-                {dancer.suitePrefs.third ?? '—'}
+                <strong>{dancer.fullName}</strong> • Role <RoleScore score={dancer.roleScore} /> •{' '}
+                <span className="suite-pref-row">
+                  <SuiteChip suite={dancer.suitePrefs.first ?? null} />
+                  <SuiteChip suite={dancer.suitePrefs.second ?? null} />
+                  <SuiteChip suite={dancer.suitePrefs.third ?? null} />
+                </span>
               </li>
             ))}
           </ul>
