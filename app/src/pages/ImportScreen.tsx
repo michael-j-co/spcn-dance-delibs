@@ -148,7 +148,7 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
                   <th>1st Pref</th>
                   <th>2nd Pref</th>
                   <th>3rd Pref</th>
-                  <th>Role Score</th>
+                  <th>M/F Score</th>
                   <th>New?</th>
                 </tr>
               </thead>

@@ -637,3 +637,14 @@ button:disabled {
 .role-score--blue {
   color: #2563eb; /* blue-600 */
 }
+
+/* Average role score coloring */
+.avg-role-score {
+  font-weight: 600;
+}
+.avg-role-score--good { /* 4.0 - 6.0 inclusive */
+  color: #16a34a; /* green-600 */
+}
+.avg-role-score--bad { /* <4.0 or >6.0 */
+  color: #dc2626; /* red-600 */
+}

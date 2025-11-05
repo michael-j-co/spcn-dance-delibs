@@ -11,6 +11,7 @@ import type { Dancer, DraftState, SuiteName } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
 import { SuiteChip } from '../components/SuiteChip'
 import { formatSuiteName, getSuiteColor } from '../lib/colors'
+import { FaArrowRight } from 'react-icons/fa'
 import { RoleScore } from '../components/RoleScore'
 
 type DraftBoardProps = {
@@ -188,7 +189,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
                 onClick={handleConfirmPicks}
                 disabled={confirmDisabled}
               >
-                Confirm Picks
+                <FaArrowRight aria-label="Confirm Picks" />
               </button>
             </div>
           )}
@@ -224,7 +225,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
                       <tr>
                         <th></th>
                         <th>Name</th>
-                        <th>Role</th>
+                        <th>M/F</th>
                         <th>New?</th>
                         <th>Preferences</th>
                       </tr>
@@ -256,7 +257,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
                               {candidate.fullName}
                             </td>
                             <td>
-                              <RoleScore score={candidate.roleScore} />
+                            <RoleScore score={candidate.roleScore} />
                           </td>
                           <td>{candidate.isNew ? 'Yes' : 'No'}</td>
                           <td>
@@ -374,6 +375,7 @@ function SuiteRosterCard({
   const averageRoleScore =
     rosterDancers.reduce((sum, dancer) => sum + dancer.roleScore, 0) /
     (rosterDancers.length || 1)
+  const avgClass = averageRoleScore >= 4 && averageRoleScore <= 6 ? 'avg-role-score--good' : 'avg-role-score--bad'
 
   const palette = getSuiteColor(suite)
   const suiteSlug = formatSuiteName(suite)
@@ -399,9 +401,9 @@ function SuiteRosterCard({
           <strong>{rosterDancers.length}</strong> dancers
         </span>
         <span>
-          <strong>{newCount}</strong> new / {returningCount} returning
+          <strong>{newCount}</strong> new : {returningCount} returning
         </span>
-        <span>Avg role score {averageRoleScore.toFixed(1)}</span>
+        <span>Avg M/F score <span className={`avg-role-score ${avgClass}`}>{averageRoleScore.toFixed(1)}</span></span>
       </div>
       {rosterDancers.length > 0 ? (
         <ul>

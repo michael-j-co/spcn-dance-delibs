@@ -88,10 +88,21 @@ export function ExportScreen() {
                     <strong>{summary.count}</strong> dancers
                   </li>
                   <li>
-                    <strong>{summary.newCount}</strong> new /{' '}
-                    {summary.returningCount} returning
+                    <strong>{summary.newCount}</strong> new : {summary.returningCount}{' '}
+                    returning
                   </li>
-                  <li>Avg role score {summary.averageRoleScore.toFixed(1)}</li>
+                  <li>
+                    Avg M/F score{' '}
+                    <span
+                      className={`avg-role-score ${
+                        summary.averageRoleScore >= 4 && summary.averageRoleScore <= 6
+                          ? 'avg-role-score--good'
+                          : 'avg-role-score--bad'
+                      }`}
+                    >
+                      {summary.averageRoleScore.toFixed(1)}
+                    </span>
+                  </li>
                 </ul>
                 <button
                   type="button"
