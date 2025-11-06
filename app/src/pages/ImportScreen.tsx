@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
-import { Box, Button, FileUpload, Icon } from '@chakra-ui/react'
+import { useState } from 'react'
+import { Badge, Box, Button, Center, FileUpload, Table } from '@chakra-ui/react'
+import type { FileUpload as FileUploadNS } from '@chakra-ui/react'
 import { HiUpload } from 'react-icons/hi'
-import { LuUpload } from 'react-icons/lu'
 import {
   autoDetectMapping,
   parseCsv,
@@ -33,24 +33,7 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
   const [pendingMapping, setPendingMapping] = useState<Partial<ColumnMapping>>({})
   const [uploadKey, setUploadKey] = useState(0)
 
-  const preferenceGaps = useMemo(() => {
-    if (!dancers.length) return null
-    let missingFirst = 0
-    let missingSecond = 0
-    let missingThird = 0
-
-    dancers.forEach((dancer) => {
-      if (!dancer.suitePrefs.first) missingFirst += 1
-      if (!dancer.suitePrefs.second) missingSecond += 1
-      if (!dancer.suitePrefs.third) missingThird += 1
-    })
-
-    if (!missingFirst && !missingSecond && !missingThird) {
-      return null
-    }
-
-    return { missingFirst, missingSecond, missingThird }
-  }, [dancers])
+  // Preference gaps are expected and no longer surfaced as a warning
 
   const headerSignature = (headers: string[]) => headers.slice().sort().join(' | ')
   const loadSavedMapping = (headers: string[]): Partial<ColumnMapping> | null => {
@@ -128,7 +111,9 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
   }
 
   return (
-    <section className="panel">
+    <Center w="100%">
+      <Box px="2" w="100%" maxW="4xl">
+        <section className="panel">
       <header className="panel__header">
         <div>
           <h2>Import Dancer Data</h2>
@@ -139,13 +124,17 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
         </div>
         <FileUpload.Root
           key={uploadKey}
-          accept={["text/csv", ".csv"]}
+          accept={["text/csv"]}
           maxFiles={1}
-          onFileChange={(details: any) => {
+          onFileChange={(details: FileUploadNS.FileChangeDetails) => {
             const accepted = details?.acceptedFiles ?? []
             if (accepted.length > 0) {
               void handleFiles(accepted)
             }
+          }}
+          onFileReject={() => {
+            setError('Only CSV files are allowed.')
+            setStatus('error')
           }}
         >
           <FileUpload.HiddenInput />
@@ -161,15 +150,6 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
               </Button>
             </FileUpload.ClearTrigger>
           </Box>
-          <FileUpload.Dropzone>
-            <Icon size="md" color="fg.muted">
-              <LuUpload />
-            </Icon>
-            <FileUpload.DropzoneContent>
-              <Box>Drag and drop CSV here</Box>
-              <Box color="fg.muted">.csv files only</Box>
-            </FileUpload.DropzoneContent>
-          </FileUpload.Dropzone>
           <FileUpload.List />
         </FileUpload.Root>
       </header>
@@ -203,58 +183,51 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
             Preferences are compacted: if earlier preferences are empty or
             marked as “script”, later preferences shift up to fill gaps.
           </div>
-          {preferenceGaps && (
-            <div className="alert warning">
-              <strong>Heads up:</strong>{' '}
-              <span>
-                {[
-                  preferenceGaps.missingFirst
-                    ? `${preferenceGaps.missingFirst} missing 1st pref`
-                    : null,
-                  preferenceGaps.missingSecond
-                    ? `${preferenceGaps.missingSecond} missing 2nd pref`
-                    : null,
-                  preferenceGaps.missingThird
-                    ? `${preferenceGaps.missingThird} missing 3rd pref`
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </span>
-            </div>
-          )}
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>1st Pref</th>
-                  <th>2nd Pref</th>
-                  <th>3rd Pref</th>
-                  <th>M/F Score</th>
-                  <th>New?</th>
-                </tr>
-              </thead>
-              <tbody>
+          {/* Omitted heads-up warning for missing preferences */}
+          <Table.ScrollArea borderWidth="1px" rounded="md" maxH="420px">
+            <Table.Root size="sm" variant="outline" stickyHeader>
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeader>Name</Table.ColumnHeader>
+                  <Table.ColumnHeader>1st Pref</Table.ColumnHeader>
+                  <Table.ColumnHeader>2nd Pref</Table.ColumnHeader>
+                  <Table.ColumnHeader>3rd Pref</Table.ColumnHeader>
+                  <Table.ColumnHeader>M/F Score</Table.ColumnHeader>
+                  <Table.ColumnHeader>New?</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
                 {dancers.map((dancer) => (
-                  <tr key={dancer.id}>
-                    <td>{dancer.fullName}</td>
-                    <td>
+                  <Table.Row key={dancer.id}>
+                    <Table.Cell>{dancer.fullName}</Table.Cell>
+                    <Table.Cell>
                       <SuiteChip suite={dancer.suitePrefs.first ?? null} />
-                    </td>
-                    <td>
+                    </Table.Cell>
+                    <Table.Cell>
                       <SuiteChip suite={dancer.suitePrefs.second ?? null} />
-                    </td>
-                    <td>
+                    </Table.Cell>
+                    <Table.Cell>
                       <SuiteChip suite={dancer.suitePrefs.third ?? null} />
-                    </td>
-                    <td><RoleScore score={dancer.roleScore} /></td>
-                    <td>{dancer.isNew ? 'Yes' : 'No'}</td>
-                  </tr>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <RoleScore score={dancer.roleScore} />
+                    </Table.Cell>
+                    <Table.Cell>
+                      {dancer.isNew ? (
+                        <Badge colorPalette="purple" size="sm" variant="subtle">
+                          New
+                        </Badge>
+                      ) : (
+                        <Badge colorPalette="gray" size="sm" variant="subtle">
+                          Returning
+                        </Badge>
+                      )}
+                    </Table.Cell>
+                  </Table.Row>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </Table.Body>
+            </Table.Root>
+          </Table.ScrollArea>
           <footer className="panel__footer">
             <button type="button" className="secondary" onClick={handleResetImport}>
               Clear Selection
@@ -306,6 +279,8 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
           }}
         />
       )}
-    </section>
+        </section>
+      </Box>
+    </Center>
   )
 }
