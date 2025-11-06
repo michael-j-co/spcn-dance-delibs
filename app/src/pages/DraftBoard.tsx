@@ -382,7 +382,7 @@ function SuiteRosterCard({
 
   const palette = getSuiteColor(suite)
   const suiteSlug = formatSuiteName(suite)
-  const style: CSSProperties = {
+  const style: CSSProperties & Record<string, string> = {
     '--suite-color-base': palette.base,
     '--suite-color-soft': palette.soft,
     '--suite-color-contrast': palette.contrast,

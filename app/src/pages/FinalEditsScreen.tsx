@@ -1,5 +1,4 @@
 import { useMemo, useState, type CSSProperties, type DragEvent } from 'react'
-import { SUITE_NAMES } from '../constants'
 import type { Dancer, SuiteName } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
 import { RoleScore } from '../components/RoleScore'
@@ -82,11 +81,11 @@ export function FinalEditsScreen() {
           {columns.map(({ suite, dancers, finalized }) => {
             const palette = getSuiteColor(suite)
             const suiteSlug = formatSuiteName(suite)
-            const style: CSSProperties = {
+            const style: CSSProperties & Record<string, string> = {
               '--suite-color-base': palette.base,
               '--suite-color-soft': palette.soft,
               '--suite-color-contrast': palette.contrast,
-            } as React.CSSProperties
+            }
             const metrics = calcRosterMetrics(dancers)
             const avgClass = metrics.avgRole >= 4 && metrics.avgRole <= 6 ? 'avg-role-score--good' : 'avg-role-score--bad'
             const isOver = dragOverSuite === suite

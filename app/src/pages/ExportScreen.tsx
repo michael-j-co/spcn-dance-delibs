@@ -63,7 +63,7 @@ export function ExportScreen() {
           {summaries.map((summary) => {
             const palette = getSuiteColor(summary.suite)
             const suiteSlug = formatSuiteName(summary.suite)
-            const style: CSSProperties = {
+            const style: CSSProperties & Record<string, string> = {
               '--suite-color-base': palette.base,
               '--suite-color-soft': palette.soft,
               '--suite-color-contrast': palette.contrast,

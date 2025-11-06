@@ -264,9 +264,6 @@ function draftReducer(state: DraftState | null, action: DraftAction) {
 
           return updatedState
         }
-        case 'RESET': {
-          return initialState
-        }
         default:
           return state
       }

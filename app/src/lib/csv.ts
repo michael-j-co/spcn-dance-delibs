@@ -52,7 +52,6 @@ export function autoDetectMapping(headers: string[]): Partial<ColumnMapping> {
   }
 
   const hasAll = (...tokens: string[]) => (s: string) => tokens.every((t) => s.includes(t))
-  const starts = (...tokens: string[]) => (s: string) => tokens.every((t) => s.startsWith(t))
 
   const mapping: Partial<ColumnMapping> = {}
 
