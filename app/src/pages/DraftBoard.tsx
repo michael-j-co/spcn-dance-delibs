@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from 'react'
 import { MAX_PICKS_PER_TURN } from '../constants'
 import { buildRecommendations } from '../lib/recommendations'
 import type { Dancer, SuiteName } from '../types'
@@ -15,30 +20,37 @@ type DraftBoardProps = {
 
 export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
   const { state, actions, helpers } = useDraftStore()
-  const hasState = Boolean(state)
+
+  if (!state) {
+    return (
+      <section className="panel">
+        <div className="panel__body">
+          <p>Import dancer data to begin drafting.</p>
+        </div>
+      </section>
+    )
+  }
 
   const currentSuite = helpers.currentSuite
-  const dancersList = state?.dancers ?? []
   const dancerLookup = useMemo(() => {
     const map = new Map<string, Dancer>()
-    dancersList.forEach((dancer) => {
+    state.dancers.forEach((dancer) => {
       map.set(dancer.id, dancer)
     })
     return map
-  }, [dancersList])
+  }, [state.dancers])
 
-  const suiteOrder = state?.suiteOrder ?? []
   const rosterOrder = useMemo(() => {
-    if (!currentSuite) return [...suiteOrder]
+    if (!currentSuite) return [...state.suiteOrder]
     return [
       currentSuite,
-      ...suiteOrder.filter((suite) => suite !== currentSuite),
+      ...state.suiteOrder.filter((suite) => suite !== currentSuite),
     ]
-  }, [currentSuite, suiteOrder])
+  }, [currentSuite, state.suiteOrder])
 
-  const allFinalized = hasState
-    ? suiteOrder.every((suite) => state!.suites[suite].finalized)
-    : false
+  const allFinalized = state.suiteOrder.every(
+    (suite) => state.suites[suite].finalized,
+  )
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -80,7 +92,6 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
     return [...topFiltered, ...remainder]
   }, [filteredCandidates, recommendations.allCandidates, recommendations.topPicks])
 
-  // Removed unused memos from pre-manual-assign flow
 
   const handleToggleSelection = (dancerId: string) => {
     setSelectedIds((prev) => {
@@ -111,7 +122,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
     actions.finalizeSuite(currentSuite)
   }
 
-  const currentRoster = currentSuite && state
+  const currentRoster = currentSuite
     ? state.suites[currentSuite]
     : { ids: [], finalized: false }
 
@@ -139,16 +150,6 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
       return
     }
     setSelectedIds(topRecommendationIds)
-  }
-
-  if (!hasState) {
-    return (
-      <section className="panel">
-        <div className="panel__body">
-          <p>Import dancer data to begin drafting.</p>
-        </div>
-      </section>
-    )
   }
 
   return (
