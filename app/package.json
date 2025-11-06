@@ -11,6 +11,10 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@chakra-ui/react": "^3.0.0",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.0",
+    "framer-motion": "^11.0.0",
     "papaparse": "^5.5.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

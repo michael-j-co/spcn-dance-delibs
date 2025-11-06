@@ -1,4 +1,7 @@
-import { useMemo, useState, type ChangeEvent } from 'react'
+import { useMemo, useState } from 'react'
+import { Box, Button, FileUpload, Icon } from '@chakra-ui/react'
+import { HiUpload } from 'react-icons/hi'
+import { LuUpload } from 'react-icons/lu'
 import {
   autoDetectMapping,
   parseCsv,
@@ -28,6 +31,7 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([])
   const [showMapper, setShowMapper] = useState(false)
   const [pendingMapping, setPendingMapping] = useState<Partial<ColumnMapping>>({})
+  const [uploadKey, setUploadKey] = useState(0)
 
   const preferenceGaps = useMemo(() => {
     if (!dancers.length) return null
@@ -62,11 +66,14 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
     try {
       const key = `csv-mapping::${headerSignature(headers)}`
       localStorage.setItem(key, JSON.stringify(mapping))
-    } catch {}
+    } catch (err) {
+      // Non-fatal: mapping persistence can fail (e.g., storage quota/permissions)
+      console.warn('Failed to save CSV mapping to localStorage', err)
+    }
   }
 
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+  const handleFiles = async (files: File[]) => {
+    const file = files?.[0]
     if (!file) return
     setStatus('loading')
     setError(null)
@@ -102,7 +109,7 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
       setDancers([])
       setFileName(null)
     } finally {
-      event.target.value = ''
+      // No-op: Chakra's FileUpload manages its own input value
     }
   }
 
@@ -117,6 +124,7 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
     setStatus('idle')
     setError(null)
     setFileName(null)
+    setUploadKey((i) => i + 1)
   }
 
   return (
@@ -129,14 +137,41 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
             validated on import.
           </p>
         </div>
-        <label className="file-input">
-          <span>Select CSV</span>
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={handleFileChange}
-          />
-        </label>
+        <FileUpload.Root
+          key={uploadKey}
+          accept={["text/csv", ".csv"]}
+          maxFiles={1}
+          onFileChange={(details: any) => {
+            const accepted = details?.acceptedFiles ?? []
+            if (accepted.length > 0) {
+              void handleFiles(accepted)
+            }
+          }}
+        >
+          <FileUpload.HiddenInput />
+          <Box display="inline-flex" gap="2">
+            <FileUpload.Trigger asChild>
+              <Button variant="outline" size="sm">
+                <HiUpload /> Upload CSV
+              </Button>
+            </FileUpload.Trigger>
+            <FileUpload.ClearTrigger asChild>
+              <Button variant="ghost" size="xs" onClick={handleResetImport}>
+                Clear
+              </Button>
+            </FileUpload.ClearTrigger>
+          </Box>
+          <FileUpload.Dropzone>
+            <Icon size="md" color="fg.muted">
+              <LuUpload />
+            </Icon>
+            <FileUpload.DropzoneContent>
+              <Box>Drag and drop CSV here</Box>
+              <Box color="fg.muted">.csv files only</Box>
+            </FileUpload.DropzoneContent>
+          </FileUpload.Dropzone>
+          <FileUpload.List />
+        </FileUpload.Root>
       </header>
 
       {status === 'loading' && (
