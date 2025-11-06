@@ -201,9 +201,10 @@ const SUITE_ALIASES: Record<SuiteName, string[]> = {
   Arnis: ['arnis'],
   Mindanao: ['mindanao'],
   Masa: ['masa'],
+  Ensemble: ['ensemble'],
 }
 
-const IGNORABLE_PREFERENCE_LABELS = ['script', 'ensemble']
+const IGNORABLE_PREFERENCE_LABELS = ['script']
 
 function normalizeSuiteName(value: string): SuiteName | null {
   if (!value || !value.trim()) {

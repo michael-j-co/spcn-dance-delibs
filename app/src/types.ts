@@ -1,4 +1,10 @@
-export type SuiteName = 'Maria Clara' | 'Rural' | 'Arnis' | 'Mindanao' | 'Masa'
+export type SuiteName =
+  | 'Maria Clara'
+  | 'Rural'
+  | 'Arnis'
+  | 'Mindanao'
+  | 'Masa'
+  | 'Ensemble'
 
 export type SuitePreferences = {
   first: SuiteName | null

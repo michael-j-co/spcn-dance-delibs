@@ -6,6 +6,7 @@ export const SUITE_NAMES: SuiteName[] = [
   'Arnis',
   'Mindanao',
   'Masa',
+  'Ensemble',
 ]
 
 export const SUITE_COLORS: Record<
@@ -36,6 +37,11 @@ export const SUITE_COLORS: Record<
     base: '#8B5CF6',
     soft: 'rgba(139, 92, 246, 0.2)',
     contrast: '#3A1E8F',
+  },
+  Ensemble: {
+    base: '#10B981',
+    soft: 'rgba(16, 185, 129, 0.18)',
+    contrast: '#0B4F39',
   },
 }
 

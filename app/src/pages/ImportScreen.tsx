@@ -166,8 +166,7 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
           </div>
           <div className="alert info">
             Preferences are compacted: if earlier preferences are empty or
-            marked as “ensemble” or “script”, later preferences shift up to fill
-            gaps.
+            marked as “script”, later preferences shift up to fill gaps.
           </div>
           {preferenceGaps && (
             <div className="alert warning">

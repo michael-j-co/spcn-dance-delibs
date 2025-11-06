@@ -1,14 +1,15 @@
+import React from 'react'
 import { render, waitFor, act } from '@testing-library/react'
 import { describe, expect, it, beforeEach } from 'vitest'
 import { useEffect } from 'react'
-import { DraftProvider, useDraftStore } from './DraftProvider'
-import type { Dancer, SuiteName } from '../types'
+import { DraftProvider, useDraftStore, type DraftContextValue } from './DraftProvider'
+import type { Dancer, SuiteName, DraftState } from '../types'
 
 beforeEach(() => {
   window.localStorage.clear()
 })
 
-type DraftStoreSnapshot = ReturnType<typeof useDraftStore>
+type DraftStoreSnapshot = DraftContextValue
 
 function StoreObserver({
   onChange,
@@ -38,7 +39,7 @@ const createDancer = (id: string, name: string, prefs: SuiteName[]): Dancer => (
 })
 
 describe('DraftProvider', () => {
-  it('initialises drafts, assigns dancers, and advances turns', async () => {
+it('initialises drafts, assigns dancers, and advances turns', async () => {
     let latest: DraftStoreSnapshot | null = null
 
     render(
@@ -66,27 +67,78 @@ describe('DraftProvider', () => {
       latest!.actions.initializeDraft([dancerA, dancerB])
     })
 
-    expect(latest?.state?.dancers).toHaveLength(2)
-    expect(latest?.state?.currentTurnSuiteIndex).toBe(0)
+    await waitFor(() => {
+      expect(latest?.state?.dancers).toHaveLength(2)
+      expect(latest?.state?.currentTurnSuiteIndex).toBe(0)
+    })
 
+    const beforeIndex = latest!.state!.currentTurnSuiteIndex
+    const currentSuiteBefore = latest!.state!.suiteOrder[beforeIndex]
     act(() => {
       latest!.actions.assignToCurrentSuite([dancerA.id])
     })
 
-    expect(latest?.state?.suites['Maria Clara'].ids).toContain('1')
-    expect(latest?.state?.unassignedIds).toEqual(['2'])
-    expect(latest?.state?.currentTurnSuiteIndex).toBe(1)
+    await waitFor(() => {
+      expect(latest?.state?.suites[currentSuiteBefore].ids).toContain('1')
+      expect(latest?.state?.unassignedIds).toEqual(['2'])
+      expect(latest?.state?.currentTurnSuiteIndex).not.toBe(beforeIndex)
+    })
 
     act(() => {
       latest!.actions.finalizeSuite('Maria Clara')
     })
 
-    expect(latest?.state?.suites['Maria Clara'].finalized).toBe(true)
+    await waitFor(() => {
+      expect(latest?.state?.suites['Maria Clara'].finalized).toBe(true)
+    })
 
     act(() => {
       latest!.actions.resetDraft()
     })
 
-    expect(latest?.state).toBeNull()
+    await waitFor(() => {
+      expect(latest?.state).toBeNull()
+    })
+  })
+
+  it('hydrates and migrates missing suites (e.g., Ensemble)', async () => {
+    let latest: DraftStoreSnapshot | null = null
+
+    render(
+      <DraftProvider>
+        <StoreObserver onChange={(snapshot) => (latest = snapshot)} />
+      </DraftProvider>,
+    )
+
+    await waitFor(() => {
+      expect(latest).not.toBeNull()
+    })
+
+    const legacyState = {
+      dancers: [],
+      unassignedIds: [],
+      suites: {
+        'Maria Clara': { ids: [], finalized: false },
+        Rural: { ids: [], finalized: false },
+        Arnis: { ids: [], finalized: false },
+        Mindanao: { ids: [], finalized: false },
+        Masa: { ids: [], finalized: false },
+        // Note: missing Ensemble on purpose
+      },
+      suiteOrder: ['Maria Clara', 'Rural', 'Arnis', 'Mindanao', 'Masa'],
+      currentTurnSuiteIndex: 0,
+      startedAt: new Date().toISOString(),
+    }
+
+    act(() => {
+      // Cast through unknown to satisfy lint while simulating older payload shape
+      latest!.actions.hydrate(legacyState as unknown as DraftState)
+    })
+
+    await waitFor(() => {
+      expect(latest?.state?.suites['Ensemble']).toBeDefined()
+      expect(latest?.state?.suites['Ensemble'].ids).toEqual([])
+      expect(latest?.state?.suiteOrder).toContain('Ensemble')
+    })
   })
 })

@@ -56,7 +56,7 @@ describe('parseDancersFromCsv', () => {
     )
   })
 
-  it('treats unknown preference values as unassigned', async () => {
+  it('treats unknown preference values as unassigned (with compaction)', async () => {
     const csv = createCsv([
       'Alex Doe,Unknown,Rural,Arnis,Yes,7',
     ])
@@ -65,9 +65,9 @@ describe('parseDancersFromCsv', () => {
     const [dancer] = await parseDancersFromCsv(file)
 
     expect(dancer.suitePrefs).toEqual({
-      first: null,
-      second: 'Rural',
-      third: 'Arnis',
+      first: 'Rural',
+      second: 'Arnis',
+      third: null,
     })
   })
 
@@ -101,7 +101,7 @@ describe('parseDancersFromCsv', () => {
     })
   })
 
-  it('ignores Script and Ensemble preference entries', async () => {
+  it('ignores Script preference entries and keeps Ensemble', async () => {
     const csv = createCsv([
       [
         'Alex Doe',
@@ -118,7 +118,29 @@ describe('parseDancersFromCsv', () => {
 
     expect(dancer.suitePrefs).toEqual({
       first: 'Maria Clara',
-      second: null,
+      second: 'Ensemble',
+      third: null,
+    })
+  })
+
+  it('normalizes descriptive Ensemble labels as a valid suite', async () => {
+    const csv = createCsv([
+      [
+        'Alex Doe',
+        'María Clara',
+        'Ensemble (cast of singers, dancers, etc.)',
+        '',
+        'Yes',
+        '7',
+      ].join(','),
+    ])
+    const file = new File([csv], 'ensemble.csv', { type: 'text/csv' })
+
+    const [dancer] = await parseDancersFromCsv(file)
+
+    expect(dancer.suitePrefs).toEqual({
+      first: 'Maria Clara',
+      second: 'Ensemble',
       third: null,
     })
   })

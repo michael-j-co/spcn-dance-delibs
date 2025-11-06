@@ -22,7 +22,7 @@ import {
   saveDraftState,
 } from '../lib/storage'
 
-type DraftContextValue = {
+export type DraftContextValue = {
   state: DraftState | null
   actions: {
     initializeDraft: (dancers: Dancer[]) => void
@@ -108,10 +108,30 @@ function draftReducer(state: DraftState | null, action: DraftAction) {
     }
     case 'HYDRATE': {
       const s = action.payload.state
-      const order = (s as DraftState).suiteOrder && (s as DraftState).suiteOrder.length
-        ? (s as DraftState).suiteOrder
+
+      // Migration: ensure all suites exist (e.g., newly added Ensemble)
+      const migratedSuites = { ...s.suites }
+      for (const suite of SUITE_NAMES) {
+        if (!migratedSuites[suite]) {
+          migratedSuites[suite] = { ids: [], finalized: false }
+        }
+      }
+
+      // Establish base order; if missing/empty, compute from dancers
+      const baseOrder = s.suiteOrder && s.suiteOrder.length
+        ? s.suiteOrder.slice()
         : computeSuiteOrder(s.dancers)
-      return { ...s, suiteOrder: order }
+      // Append any newly introduced suites that are missing from the order
+      const missing = SUITE_NAMES.filter((name) => !baseOrder.includes(name))
+      const order = [...baseOrder, ...missing]
+
+      // Clamp currentTurnSuiteIndex within bounds
+      const currentTurnSuiteIndex = Math.min(
+        Math.max(0, s.currentTurnSuiteIndex ?? 0),
+        Math.max(0, order.length - 1),
+      )
+
+      return { ...s, suites: migratedSuites, suiteOrder: order, currentTurnSuiteIndex }
     }
     case 'RESET': {
       return initialState

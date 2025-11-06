@@ -47,6 +47,9 @@
 .app-shell.suite-theme--masa .app-header {
   background: linear-gradient(135deg, #3a1f94, #8b5cf6);
 }
+.app-shell.suite-theme--ensemble .app-header {
+  background: linear-gradient(135deg, #0b4f39, #10b981);
+}
 .app-header__titles h1 {
   font-size: 1.75rem;
 }
