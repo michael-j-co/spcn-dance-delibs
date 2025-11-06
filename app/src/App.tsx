@@ -62,12 +62,6 @@ function App() {
     helpers.refreshSavedDraftFlag()
   }
 
-  const handleClearDraft = () => {
-    actions.resetDraft()
-    setView('import')
-    setShowResumePrompt(false)
-  }
-
   const handleStartDraft = () => {
     setView('draft')
     setShowResumePrompt(false)
@@ -128,7 +122,7 @@ function App() {
     >
       <header className="app-header">
         <div className="app-header__titles">
-          <h1>SPCN Suite Drafting</h1>
+          <h1>SPCN Suite Delibs</h1>
           {isDraftView && state && (
             <p className="app-subtitle">
               Current turn:{' '}
@@ -162,13 +156,6 @@ function App() {
               {nextStepLabel}
             </button>
           )}
-          <button
-            type="button"
-            className="danger"
-            onClick={handleClearDraft}
-          >
-            Clear Draft Data
-          </button>
         </div>
       </header>
 

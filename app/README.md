@@ -43,7 +43,7 @@ Additional columns are ignored.
 
 ## Local Storage
 
-State is auto-saved after imports, assignments, and finalizations under the key `spcn-draft-state`. On load, the app prompts to resume or start a fresh draft. Use **Clear Draft Data** in the header to wipe saved state.
+State is auto-saved after imports, assignments, and finalizations under the key `spcn-draft-state`. On load, the app prompts to resume or start a fresh draft. To restart from scratch, refresh the page.
 
 ## Exports
 

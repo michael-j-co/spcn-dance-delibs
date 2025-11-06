@@ -9,7 +9,7 @@ import { buildRecommendations } from '../lib/recommendations'
 import type { Dancer, SuiteName } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
 import { SuiteChip } from '../components/SuiteChip'
-import { Badge, Table } from '@chakra-ui/react'
+import { Badge, Table, Stack } from '@chakra-ui/react'
 import { formatSuiteName, getSuiteColor } from '../lib/colors'
 import { FaArrowRight } from 'react-icons/fa'
 import { RoleScore } from '../components/RoleScore'
@@ -314,7 +314,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
 
       <aside className="roster-panel">
         <h2>Suite Rosters</h2>
-        <div className="roster-list">
+        <Stack className="roster-list" gap="4">
           {rosterOrder.map((suite) => (
             <SuiteRosterCard
               key={suite}
@@ -325,7 +325,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
               isCurrent={suite === currentSuite}
             />
           ))}
-        </div>
+        </Stack>
       </aside>
 
     </div>
