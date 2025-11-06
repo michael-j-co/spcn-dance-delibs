@@ -1,6 +1,5 @@
-import type { CSSProperties } from 'react'
 import type { SuiteName } from '../types'
-import { getSuiteColor } from '../lib/colors'
+import { Badge } from '@chakra-ui/react'
 
 type SuiteChipProps = {
   suite: SuiteName | null
@@ -20,24 +19,34 @@ export function SuiteChip({
       return null
     }
     return (
-      <span className={`suite-chip is-empty ${className ?? ''}`.trim()}>
+      <Badge
+        className={className}
+        colorPalette="gray"
+        size="sm"
+        variant="subtle"
+      >
         {placeholderLabel}
-      </span>
+      </Badge>
     )
   }
 
-  const palette = getSuiteColor(suite)
+  const suitePalette: Record<SuiteName, 'pink' | 'blue' | 'orange' | 'green' | 'purple' | 'teal'> = {
+    'Maria Clara': 'pink',
+    Rural: 'blue',
+    Arnis: 'orange',
+    Mindanao: 'green',
+    Masa: 'purple',
+    Ensemble: 'teal',
+  }
 
   return (
-    <span
-      className={`suite-chip ${className ?? ''}`.trim()}
-      style={{
-        '--chip-color': palette.soft,
-        '--chip-border': palette.base,
-        '--chip-contrast': palette.contrast,
-      } as CSSProperties}
+    <Badge
+      className={className}
+      colorPalette={suitePalette[suite]}
+      size="sm"
+      variant="subtle"
     >
       {suite}
-    </span>
+    </Badge>
   )
 }

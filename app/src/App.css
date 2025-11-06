@@ -236,6 +236,24 @@ button:disabled {
   transform: none;
 }
 
+/* Draft table selection styles (pre-Chakra behavior) */
+tr.selectable-row:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+tr.is-selected {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+tr.is-selected td {
+  background: transparent;
+}
+
+.row-checkbox {
+  width: 16px;
+  height: 16px;
+}
+
 .file-input {
   position: relative;
   overflow: hidden;

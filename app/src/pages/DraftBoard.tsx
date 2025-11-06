@@ -1,15 +1,10 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type CSSProperties,
-  type FormEvent,
-} from 'react'
-import { MAX_PICKS_PER_TURN, SUITE_NAMES } from '../constants'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { MAX_PICKS_PER_TURN } from '../constants'
 import { buildRecommendations } from '../lib/recommendations'
-import type { Dancer, DraftState, SuiteName } from '../types'
+import type { Dancer, SuiteName } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
 import { SuiteChip } from '../components/SuiteChip'
+import { Badge, Table } from '@chakra-ui/react'
 import { formatSuiteName, getSuiteColor } from '../lib/colors'
 import { FaArrowRight } from 'react-icons/fa'
 import { RoleScore } from '../components/RoleScore'
@@ -20,41 +15,34 @@ type DraftBoardProps = {
 
 export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
   const { state, actions, helpers } = useDraftStore()
-
-  if (!state) {
-    return (
-      <section className="panel">
-        <div className="panel__body">
-          <p>Import dancer data to begin drafting.</p>
-        </div>
-      </section>
-    )
-  }
+  const hasState = Boolean(state)
 
   const currentSuite = helpers.currentSuite
+  const dancersList = state?.dancers ?? []
   const dancerLookup = useMemo(() => {
     const map = new Map<string, Dancer>()
-    state.dancers.forEach((dancer) => {
+    dancersList.forEach((dancer) => {
       map.set(dancer.id, dancer)
     })
     return map
-  }, [state.dancers])
+  }, [dancersList])
 
+  const suiteOrder = state?.suiteOrder ?? []
   const rosterOrder = useMemo(() => {
-    if (!currentSuite) return [...state.suiteOrder]
+    if (!currentSuite) return [...suiteOrder]
     return [
       currentSuite,
-      ...state.suiteOrder.filter((suite) => suite !== currentSuite),
+      ...suiteOrder.filter((suite) => suite !== currentSuite),
     ]
-  }, [currentSuite, state.suiteOrder])
+  }, [currentSuite, suiteOrder])
 
-  const allFinalized = state.suiteOrder.every(
-    (suite) => state.suites[suite].finalized,
-  )
+  const allFinalized = hasState
+    ? suiteOrder.every((suite) => state!.suites[suite].finalized)
+    : false
 
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [manualAssignOpen, setManualAssignOpen] = useState(false)
+  // Removed manual assign flow
 
   useEffect(() => {
     setSelectedIds([])
@@ -92,20 +80,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
     return [...topFiltered, ...remainder]
   }, [filteredCandidates, recommendations.allCandidates, recommendations.topPicks])
 
-  const unassignedDancers = useMemo(
-      () =>
-        state.unassignedIds
-          .map((id) => dancerLookup.get(id))
-          .filter((dancer): dancer is Dancer => Boolean(dancer)),
-    [dancerLookup, state.unassignedIds],
-  )
-
-  const defaultManualSuite = useMemo(() => {
-    const firstActive = state.suiteOrder.find(
-      (suite) => !state.suites[suite].finalized,
-    )
-    return firstActive ?? state.suiteOrder[0]
-  }, [state.suiteOrder, state.suites])
+  // Removed unused memos from pre-manual-assign flow
 
   const handleToggleSelection = (dancerId: string) => {
     setSelectedIds((prev) => {
@@ -136,7 +111,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
     actions.finalizeSuite(currentSuite)
   }
 
-  const currentRoster = currentSuite
+  const currentRoster = currentSuite && state
     ? state.suites[currentSuite]
     : { ids: [], finalized: false }
 
@@ -164,6 +139,16 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
       return
     }
     setSelectedIds(topRecommendationIds)
+  }
+
+  if (!hasState) {
+    return (
+      <section className="panel">
+        <div className="panel__body">
+          <p>Import dancer data to begin drafting.</p>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -222,69 +207,80 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
               {filteredCandidates.length === 0 ? (
                 <p>No dancers match the current filters.</p>
               ) : (
-                <div className="table-wrapper">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th></th>
-                        <th>Name</th>
-                        <th>M/F</th>
-                        <th>New?</th>
-                        <th>Preferences</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <Table.ScrollArea borderWidth="1px" rounded="md" maxH="420px">
+                  <Table.Root size="sm" variant="outline" stickyHeader>
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeader w="6"></Table.ColumnHeader>
+                        <Table.ColumnHeader>Name</Table.ColumnHeader>
+                        <Table.ColumnHeader>M/F</Table.ColumnHeader>
+                        <Table.ColumnHeader>New?</Table.ColumnHeader>
+                        <Table.ColumnHeader>Preferences</Table.ColumnHeader>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
                       {sortedCandidates.map((candidate) => {
                         const isSelected = selectedIds.includes(candidate.id)
                         const isRecommended = recommendedSet.has(candidate.id)
                         return (
-                          <tr
+                          <Table.Row
                             key={candidate.id}
-                            className={isSelected ? 'is-selected' : undefined}
+                            className={`${isSelected ? 'is-selected' : ''} selectable-row`.trim()}
+                            onClick={() => handleToggleSelection(candidate.id)}
                           >
-                            <td>
+                            <Table.Cell onClick={(e) => e.stopPropagation()}>
                               <input
                                 type="checkbox"
+                                aria-label={`Select ${candidate.fullName}`}
                                 checked={isSelected}
-                                onChange={() =>
-                                  handleToggleSelection(candidate.id)
-                                }
+                                onChange={() => handleToggleSelection(candidate.id)}
                                 disabled={
                                   !selectedIds.includes(candidate.id) &&
                                   selectedIds.length >= MAX_PICKS_PER_TURN
                                 }
+                                className="row-checkbox"
                               />
-                            </td>
-                            <td>
+                            </Table.Cell>
+                            <Table.Cell>
                               {isRecommended ? '⭐ ' : ''}
                               {candidate.fullName}
-                            </td>
-                            <td>
-                            <RoleScore score={candidate.roleScore} />
-                          </td>
-                          <td>{candidate.isNew ? 'Yes' : 'No'}</td>
-                          <td>
-                            <div className="suite-pref-row">
-                              <SuiteChip
-                                suite={candidate.suitePrefs.first ?? null}
-                                className="suite-pref-chip"
-                              />
-                              <SuiteChip
-                                suite={candidate.suitePrefs.second ?? null}
-                                className="suite-pref-chip"
-                              />
-                              <SuiteChip
-                                suite={candidate.suitePrefs.third ?? null}
-                                className="suite-pref-chip"
-                              />
-                            </div>
-                          </td>
-                        </tr>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <RoleScore score={candidate.roleScore} />
+                            </Table.Cell>
+                            <Table.Cell>
+                              {candidate.isNew ? (
+                                <Badge colorPalette="purple" size="sm" variant="subtle">
+                                  New
+                                </Badge>
+                              ) : (
+                                <Badge colorPalette="gray" size="sm" variant="subtle">
+                                  Returning
+                                </Badge>
+                              )}
+                            </Table.Cell>
+                            <Table.Cell>
+                              <div className="suite-pref-row">
+                                <SuiteChip
+                                  suite={candidate.suitePrefs.first ?? null}
+                                  className="suite-pref-chip"
+                                />
+                                <SuiteChip
+                                  suite={candidate.suitePrefs.second ?? null}
+                                  className="suite-pref-chip"
+                                />
+                                <SuiteChip
+                                  suite={candidate.suitePrefs.third ?? null}
+                                  className="suite-pref-chip"
+                                />
+                              </div>
+                            </Table.Cell>
+                          </Table.Row>
                         )
                       })}
-                    </tbody>
-                  </table>
-                </div>
+                    </Table.Body>
+                  </Table.Root>
+                </Table.ScrollArea>
               )}
             </div>
 
@@ -301,14 +297,6 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
                   disabled={currentRoster.finalized}
                 >
                   Finalize {currentSuite} Roster
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => setManualAssignOpen(true)}
-                  disabled={!state.unassignedIds.length}
-                >
-                  Manual Assign
                 </button>
                 <button
                   type="button"
@@ -339,17 +327,6 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
         </div>
       </aside>
 
-      {manualAssignOpen && (
-        <ManualAssignModal
-          dancers={unassignedDancers}
-          defaultSuite={defaultManualSuite}
-          suiteStatuses={state.suites}
-          onClose={() => setManualAssignOpen(false)}
-          onSubmit={(payload) => {
-            actions.manualAssign(payload.dancerId, payload.suite)
-          }}
-        />
-      )}
     </div>
   )
 }
@@ -440,110 +417,4 @@ function SuiteRosterCard({
   )
 }
 
-type ManualAssignPayload = {
-  dancerId: string
-  suite: SuiteName
-}
-
-type ManualAssignModalProps = {
-  dancers: Dancer[]
-  defaultSuite: SuiteName
-  suiteStatuses: DraftState['suites']
-  onSubmit: (payload: ManualAssignPayload) => void
-  onClose: () => void
-}
-
-function ManualAssignModal({
-  dancers,
-  defaultSuite,
-  suiteStatuses,
-  onSubmit,
-  onClose,
-}: ManualAssignModalProps) {
-  const sortedDancers = useMemo(
-    () => [...dancers].sort((a, b) => a.fullName.localeCompare(b.fullName)),
-    [dancers],
-  )
-  const [selectedDancer, setSelectedDancer] = useState<string>(
-    sortedDancers[0]?.id ?? '',
-  )
-  const activeSuites = useMemo(
-    () =>
-      SUITE_NAMES.map((suite) => ({
-        suite,
-        finalized: suiteStatuses[suite]?.finalized ?? false,
-      })),
-    [suiteStatuses],
-  )
-
-  const allowFinalizedAssignments = useMemo(
-    () => activeSuites.every((item) => item.finalized),
-    [activeSuites],
-  )
-
-  const [suite, setSuite] = useState<SuiteName>(defaultSuite)
-
-  useEffect(() => {
-    if (sortedDancers.length > 0 && !selectedDancer) {
-      setSelectedDancer(sortedDancers[0].id)
-    }
-  }, [selectedDancer, sortedDancers])
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!selectedDancer) return
-    onSubmit({ dancerId: selectedDancer, suite })
-    onClose()
-  }
-
-  return (
-    <div className="modal-backdrop">
-      <div className="modal">
-        <h2>Manual Assignment</h2>
-        {sortedDancers.length === 0 ? (
-          <p>No unassigned dancers available.</p>
-        ) : (
-          <form onSubmit={handleSubmit} className="manual-form">
-            <label>
-              Dancer
-              <select
-                value={selectedDancer}
-                onChange={(event) => setSelectedDancer(event.target.value)}
-              >
-                {sortedDancers.map((dancer) => (
-                  <option key={dancer.id} value={dancer.id}>
-                    {dancer.fullName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Suite
-              <select
-                value={suite}
-                onChange={(event) => setSuite(event.target.value as SuiteName)}
-              >
-                {activeSuites.map(({ suite, finalized }) => (
-                  <option
-                    key={suite}
-                    value={suite}
-                    disabled={finalized && !allowFinalizedAssignments}
-                  >
-                    {suite}
-                    {finalized ? ' (finalized)' : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <footer className="modal__actions">
-              <button type="button" className="secondary" onClick={onClose}>
-                Cancel
-              </button>
-              <button type="submit">Assign Dancer</button>
-            </footer>
-          </form>
-        )}
-      </div>
-    </div>
-  )
-}
+// Manual assignment UI removed per request

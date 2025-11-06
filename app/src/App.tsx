@@ -81,6 +81,32 @@ function App() {
     setView('finalEdits')
   }
 
+  const getNextStep = (): AppView | null => {
+    switch (view) {
+      case 'import':
+        return 'draft'
+      case 'draft':
+        return 'finalEdits'
+      case 'finalEdits':
+        return 'export'
+      default:
+        return null
+    }
+  }
+
+  const nextStepLabel = useMemo(() => {
+    const next = getNextStep()
+    return next ? `Next Step: ${VIEW_LABELS[next]}` : null
+  }, [view])
+
+  const handleGoToNextStep = () => {
+    const next = getNextStep()
+    if (!next) return
+    // Prevent navigating to draft/final steps without state
+    if (next !== 'import' && !state) return
+    setView(next)
+  }
+
   const isDraftView = view === 'draft'
   const activeColor = useMemo(
     () => getActiveSuiteColor(isDraftView ? currentSuite ?? undefined : undefined),
@@ -126,22 +152,14 @@ function App() {
           ))}
         </nav>
         <div className="app-header__actions">
-          {state && (
+          {nextStepLabel && view !== 'export' && (
             <button
               type="button"
               className="secondary"
-              onClick={handleGoToExport}
+              onClick={handleGoToNextStep}
+              disabled={!state}
             >
-              Go to Export
-            </button>
-          )}
-          {state && (
-            <button
-              type="button"
-              className="secondary"
-              onClick={handleGoToFinalEdits}
-            >
-              Go to Final Edits
+              {nextStepLabel}
             </button>
           )}
           <button

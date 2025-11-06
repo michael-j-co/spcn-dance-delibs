@@ -1,9 +1,9 @@
 import { useMemo, type CSSProperties } from 'react'
+import { Button, DownloadTrigger } from '@chakra-ui/react'
 import {
   createAllAssignmentsCsv,
   createSuiteCsv,
   createSuiteSummaries,
-  triggerCsvDownload,
 } from '../lib/exporters'
 import type { SuiteName } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
@@ -36,15 +36,7 @@ export function ExportScreen() {
     [state],
   )
 
-  const handleDownloadAll = () => {
-    const file = createAllAssignmentsCsv(state)
-    triggerCsvDownload(file.filename, file.content)
-  }
-
-  const handleDownloadSuite = (suite: SuiteName) => {
-    const file = createSuiteCsv(state, suite)
-    triggerCsvDownload(file.filename, file.content)
-  }
+  const allFile = useMemo(() => createAllAssignmentsCsv(state), [state])
 
   return (
     <section className="panel">
@@ -53,9 +45,14 @@ export function ExportScreen() {
           <h2>Export Rosters</h2>
           <p>Download CSV files for the full draft and each suite roster.</p>
         </div>
-        <button type="button" onClick={handleDownloadAll}>
-          Download All Assignments
-        </button>
+        <DownloadTrigger
+          data={allFile.content}
+          fileName={allFile.filename}
+          mimeType="text/csv"
+          asChild
+        >
+          <Button variant="outline" size="sm">Download All Assignments</Button>
+        </DownloadTrigger>
       </header>
 
       <div className="panel__body">
@@ -104,13 +101,21 @@ export function ExportScreen() {
                     </span>
                   </li>
                 </ul>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => handleDownloadSuite(summary.suite)}
-                >
-                  Download {summary.suite} CSV
-                </button>
+                {(() => {
+                  const file = createSuiteCsv(state, summary.suite)
+                  return (
+                    <DownloadTrigger
+                      data={file.content}
+                      fileName={file.filename}
+                      mimeType="text/csv"
+                      asChild
+                    >
+                      <Button variant="outline" size="sm">
+                        Download {summary.suite} CSV
+                      </Button>
+                    </DownloadTrigger>
+                  )
+                })()}
               </article>
             )
           })}
