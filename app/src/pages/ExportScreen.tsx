@@ -5,7 +5,6 @@ import {
   createSuiteCsv,
   createSuiteSummaries,
 } from '../lib/exporters'
-import type { SuiteName } from '../types'
 import { useDraftStore } from '../state/DraftProvider'
 import { RoleScore } from '../components/RoleScore'
 import { SuiteChip } from '../components/SuiteChip'
