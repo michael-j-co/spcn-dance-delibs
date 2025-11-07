@@ -49,10 +49,6 @@ function App() {
     setView('export')
   }
 
-  const handleGoToFinalEdits = () => {
-    setView('finalEdits')
-  }
-
   const getNextStep = (): AppView | null => {
     switch (view) {
       case 'import':
