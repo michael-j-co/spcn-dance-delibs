@@ -2,11 +2,9 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useReducer,
   useRef,
-  useState,
   type ReactNode,
 } from 'react'
 import { SUITE_NAMES } from '../constants'
@@ -16,11 +14,6 @@ import {
   type DraftState,
   type SuiteName,
 } from '../types'
-import {
-  clearDraftState,
-  loadDraftState,
-  saveDraftState,
-} from '../lib/storage'
 
 export type DraftContextValue = {
   state: DraftState | null
@@ -37,8 +30,6 @@ export type DraftContextValue = {
   }
   helpers: {
     currentSuite: SuiteName | null
-    hasSavedDraft: boolean
-    refreshSavedDraftFlag: () => void
   }
 }
 
@@ -297,40 +288,7 @@ type DraftProviderProps = {
 
 export function DraftProvider({ children }: DraftProviderProps) {
   const [state, dispatch] = useReducer(draftReducer, initialState)
-  const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return Boolean(loadDraftState())
-  })
   const isHydratingRef = useRef(false)
-
-  const saveState = useCallback(
-    (nextState: DraftState | null) => {
-      if (!nextState) {
-        clearDraftState()
-        setHasSavedDraft(false)
-        return
-      }
-      saveDraftState({
-        state: nextState,
-        savedAt: new Date().toISOString(),
-      })
-      setHasSavedDraft(true)
-    },
-    [],
-  )
-
-  useEffect(() => {
-    if (isHydratingRef.current) {
-      isHydratingRef.current = false
-      return
-    }
-    if (state) {
-      saveState(state)
-    } else {
-      clearDraftState()
-      setHasSavedDraft(false)
-    }
-  }, [saveState, state])
 
   const initializeDraft = useCallback((dancers: Dancer[]) => {
     dispatch({ type: 'INITIALIZE', payload: { dancers } })
@@ -408,10 +366,6 @@ export function DraftProvider({ children }: DraftProviderProps) {
     return suiteAtIndex
   }, [state])
 
-  const refreshSavedDraftFlag = useCallback(() => {
-    setHasSavedDraft(Boolean(loadDraftState()))
-  }, [])
-
   const value = useMemo<DraftContextValue>(
     () => ({
       state,
@@ -428,8 +382,6 @@ export function DraftProvider({ children }: DraftProviderProps) {
       },
       helpers: {
         currentSuite,
-        hasSavedDraft,
-        refreshSavedDraftFlag,
       },
     }),
     [
@@ -437,11 +389,9 @@ export function DraftProvider({ children }: DraftProviderProps) {
       assignToCurrentSuite,
       currentSuite,
       finalizeSuite,
-      hasSavedDraft,
       hydrate,
       initializeDraft,
       manualAssign,
-      refreshSavedDraftFlag,
       resetDraft,
       state,
     ],

@@ -1,6 +1,6 @@
 # SPCN Suite Drafting App
 
-A client-only React + TypeScript application for running SPCN suite drafts end-to-end in accordance with the PRD. Suite Directors can import dancer submissions from CSV, run a turn-based draft with automated recommendations, manually assign dancers, finalize rosters, persist progress to local storage, and export final CSVs.
+A client-only React + TypeScript application for running SPCN suite drafts end-to-end in accordance with the PRD. Suite Directors can import dancer submissions from CSV, run a turn-based draft with automated recommendations, manually assign dancers, finalize rosters, and export final CSVs.
 
 ## Getting Started
 
@@ -24,7 +24,7 @@ Vitest + Testing Library cover CSV parsing, recommendation scoring, export build
 - CSV import with required-column validation and preview table (FR-1/2)
 - Turn-based drafting across fixed suites with recommendation engine (FR-3–5)
 - Manual dancer assignment and suite finalization controls (FR-4/6)
-- Auto-save to `localStorage` with resume/clear prompts (FR-7, Section 10)
+- No local persistence; drafts are not saved between sessions
 - CSV export for all suites and combined assignments (FR-8, Section 11)
 - Desktop-first UI optimized for quick turn actions with roster dashboards (Section 9)
 
@@ -43,7 +43,7 @@ Additional columns are ignored.
 
 ## Local Storage
 
-State is auto-saved after imports, assignments, and finalizations under the key `spcn-draft-state`. On load, the app prompts to resume or start a fresh draft. To restart from scratch, refresh the page.
+Draft state is not persisted. Reloading the page clears the current draft. CSV column mapping preferences may still be cached per-header to speed up imports.
 
 ## Exports
 

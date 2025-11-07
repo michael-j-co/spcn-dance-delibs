@@ -45,7 +45,5 @@ export const SUITE_COLORS: Record<
   },
 }
 
-export const STORAGE_KEY = 'spcn-draft-state'
-
 export const MAX_RECOMMENDATIONS = 10
 export const MAX_PICKS_PER_TURN = 10

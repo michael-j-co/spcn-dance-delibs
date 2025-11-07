@@ -5,7 +5,6 @@ import { DraftBoard } from './pages/DraftBoard'
 import { ExportScreen } from './pages/ExportScreen'
 import { FinalEditsScreen } from './pages/FinalEditsScreen'
 import { useDraftStore } from './state/DraftProvider'
-import { loadDraftState } from './lib/storage'
 import { formatSuiteName, getActiveSuiteColor } from './lib/colors'
 
 type AppView = 'import' | 'draft' | 'finalEdits' | 'export'
@@ -18,9 +17,8 @@ const VIEW_LABELS: Record<AppView, string> = {
 }
 
 function App() {
-  const { state, actions, helpers } = useDraftStore()
+  const { state, helpers } = useDraftStore()
   const [view, setView] = useState<AppView>('import')
-  const [showResumePrompt, setShowResumePrompt] = useState(false)
 
   useEffect(() => {
     if (!state) {
@@ -28,11 +26,7 @@ function App() {
     }
   }, [state])
 
-  useEffect(() => {
-    if (!state && helpers.hasSavedDraft) {
-      setShowResumePrompt(true)
-    }
-  }, [helpers.hasSavedDraft, state])
+  // No resume prompt: draft state is not persisted
 
   const currentSuite = helpers.currentSuite
   const disableDraftViews = !state
@@ -47,24 +41,8 @@ function App() {
     [disableDraftViews],
   )
 
-  const handleResumeDraft = () => {
-    const saved = loadDraftState()
-    if (saved) {
-      actions.hydrate(saved.state)
-      setView('draft')
-    }
-    setShowResumePrompt(false)
-  }
-
-  const handleDiscardSaved = () => {
-    actions.resetDraft()
-    setShowResumePrompt(false)
-    helpers.refreshSavedDraftFlag()
-  }
-
   const handleStartDraft = () => {
     setView('draft')
-    setShowResumePrompt(false)
   }
 
   const handleGoToExport = () => {
@@ -175,43 +153,8 @@ function App() {
         )}
       </main>
 
-      {showResumePrompt && (
-        <ResumeDraftPrompt
-          onResume={handleResumeDraft}
-          onStartFresh={handleDiscardSaved}
-        />
-      )}
-    </div>
-  )
-}
-
-type ResumeDraftPromptProps = {
-  onResume: () => void
-  onStartFresh: () => void
-}
-
-function ResumeDraftPrompt({
-  onResume,
-  onStartFresh,
-}: ResumeDraftPromptProps) {
-  return (
-    <div className="modal-backdrop">
-      <div className="modal">
-        <h2>Resume saved draft?</h2>
-        <p>
-          We found an in-progress draft in your browser. Would you like to
-          resume where you left off or start a new draft?
-        </p>
-        <div className="modal__actions">
-          <button type="button" className="secondary" onClick={onStartFresh}>
-            Start New Draft
-          </button>
-          <button type="button" onClick={onResume}>
-            Resume Draft
-          </button>
-        </div>
-      </div>
-    </div>
+      {/* No resume prompt: persistence removed */}
+  </div>
   )
 }
 
