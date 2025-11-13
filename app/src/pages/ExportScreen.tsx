@@ -17,7 +17,7 @@ export function ExportScreen() {
     return (
       <section className="panel">
         <div className="panel__body">
-          <p>Import dancer data to enable exports.</p>
+          <p>Import pref data to enable exports.</p>
         </div>
       </section>
     )
