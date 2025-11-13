@@ -144,7 +144,7 @@ function App() {
         {view === 'export' && state && <ExportScreen />}
         {view !== 'import' && !state && (
           <section className="placeholder">
-            <p>Import dancer data to begin drafting.</p>
+            <p>Import cast data to begin drafting.</p>
           </section>
         )}
       </main>
