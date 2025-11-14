@@ -179,6 +179,13 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
               <strong>Dancers:</strong> {dancers.length}
             </div>
           </div>
+          {rawRows.length > dancers.length && (
+            <div className="alert warning">
+              Imported {rawRows.length} rows but only {dancers.length} dancers have usable
+              suite preferences. Rows without any recognizable suite selections (blank or
+              marked as “Script”) are ignored.
+            </div>
+          )}
           <div className="alert info">
             Preferences are compacted: if earlier preferences are empty or
             marked as “script”, later preferences shift up to fill gaps.

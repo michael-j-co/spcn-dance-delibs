@@ -145,7 +145,16 @@ export function parseDancersWithMapping(
   }
 
   const dancers: Dancer[] = []
+  const mappedHeaders = Object.values(mapping)
   for (const row of rows) {
+    const isEmptyRow = mappedHeaders.every((header) => {
+      const value = row[header]
+      return typeof value !== 'string' || value.trim() === ''
+    })
+    if (isEmptyRow) {
+      continue
+    }
+
     const fullName = (row[mapping.fullName] ?? '').trim()
     if (!fullName) {
       throw new Error('Full Name is required for every dancer.')

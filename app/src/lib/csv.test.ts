@@ -144,4 +144,17 @@ describe('parseDancersFromCsv', () => {
       third: null,
     })
   })
+
+  it('skips empty trailing rows', async () => {
+    const csv = createCsv([
+      'Alex Doe,Maria Clara,Rural,Arnis,Yes,7',
+      ',,,,,',
+    ])
+    const file = new File([csv], 'empty-row.csv', { type: 'text/csv' })
+
+    const dancers = await parseDancersFromCsv(file)
+
+    expect(dancers).toHaveLength(1)
+    expect(dancers[0].fullName).toBe('Alex Doe')
+  })
 })
