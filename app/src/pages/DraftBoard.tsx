@@ -25,7 +25,7 @@ export function DraftBoard({ onNavigateToExport }: DraftBoardProps) {
     return (
       <section className="panel">
         <div className="panel__body">
-          <p>Import dancer data to begin drafting.</p>
+          <p>Import cast member data to begin drafting.</p>
         </div>
       </section>
     )

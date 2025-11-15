@@ -116,7 +116,7 @@ export function ImportScreen({ onDraftReady }: ImportScreenProps) {
         <section className="panel">
       <header className="panel__header">
         <div>
-          <h2>Import Dancer Data</h2>
+          <h2>Import Cast Member Data</h2>
           <p>
             Upload the CSV export of preference form submissions. Required fields are
             validated on import.

@@ -14,7 +14,7 @@ export function FinalEditsScreen() {
     return (
       <section className="panel">
         <div className="panel__body">
-          <p>Import dancer data to begin.</p>
+          <p>Import cast member data to begin.</p>
         </div>
       </section>
     )
